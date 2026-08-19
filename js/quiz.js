@@ -70,8 +70,13 @@ export function toggleLang(){Q.lang=Q.lang==='en'?'ko':'en';tell();}
 /* 중도 포기. 남은 문항을 건너뛰고 바로 문이 열린다.
    target 을 MAXQ 로 올리면 solved 가 뒤따라 붙으며 남은 확대가 이어서 재생되고,
    그대로 phase 가 흐르기 시작한다. 별도 연출을 새로 만들지 않는다. */
+var FADEMS=680;   /* 인터페이스가 다 옅어질 때까지. uiA 는 프레임당 0.16 으로 준다 */
 export function giveUp(){if(Q.dead||Q.target>=MAXQ)return;
-lastAct=null;Q.gave=1;Q.target=MAXQ;Q.uiT=0;load(MAXQ);}
+lastAct=null;Q.gave=1;Q.target=MAXQ;Q.uiT=0;
+/* 곧바로 비우면 문제·선지·삽화가 한 프레임에 사라진다. 정답 처리 때처럼
+   uiA 가 옅어지는 것을 기다렸다가 비운다. 그동안 문은 이미 다가오기 시작한다.
+   비울 때 Q.target 을 다시 읽으므로 사이에 R 이 눌려도 어긋나지 않는다. */
+setTimeout(function(){load(Q.target);},FADEMS);}
 
 /* 전부 맞혀 문이 열리기 시작하면 더는 되돌릴 수 없다.
    되돌리면 연출이 거꾸로 감기며 관리자 화면도 종료화면에서 문항으로 튄다. */
