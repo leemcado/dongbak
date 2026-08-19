@@ -249,7 +249,7 @@ if(g.measureText(tr).width>mw&&cu){ln.push(cu);cu=w[i];}else cu=tr;}
 if(cu)ln.push(cu);return ln;}
 var TG1=4.5,TGA1=0.60,TG2=13,TGA2=0.34;
 /* 전부 맞혔을 때 섬광 한가운데 뜨는 문구 */
-var CLEARTXT='CONGRATURATION!',CLEARFS=62;
+var CLEARTXT='CONGRATULATIONS!',CLEARFS=62;
 /* 글자를 레이어에 한 번 모아 그린 뒤 통째로 가우시안 블러를 먹여 얹는다.
    글자마다 그림자를 다는 것과 달리, 문장 덩어리 전체가 은은하게 번진다. */
 function drawText(){if(uiA<0.02||!Q.cur)return;
