@@ -248,6 +248,8 @@ for(var i=0;i<w.length;i++){var tr=cu?cu+' '+w[i]:w[i];
 if(g.measureText(tr).width>mw&&cu){ln.push(cu);cu=w[i];}else cu=tr;}
 if(cu)ln.push(cu);return ln;}
 var TG1=4.5,TGA1=0.60,TG2=13,TGA2=0.34;
+/* 전부 맞혔을 때 섬광 한가운데 뜨는 문구 */
+var CLEARTXT='CONGRATURATION!',CLEARFS=62;
 /* 글자를 레이어에 한 번 모아 그린 뒤 통째로 가우시안 블러를 먹여 얹는다.
    글자마다 그림자를 다는 것과 달리, 문장 덩어리 전체가 은은하게 번진다. */
 function drawText(){if(uiA<0.02||!Q.cur)return;
@@ -357,7 +359,14 @@ drawImages();
 drawText();
 if(FL>0.001){ctx.save();ctx.globalCompositeOperation='source-over';
 ctx.fillStyle='rgba(255,255,255,'+Math.min(1,Math.pow(FL,0.75)).toFixed(3)+')';
-ctx.fillRect(-OX,-OY,EW,EH);ctx.restore();}
+ctx.fillRect(-OX,-OY,EW,EH);
+/* 섬광이 화면을 다 덮은 뒤 그 한가운데. 후광 없이 검은 글씨만 얹는다. */
+var ca=ss(0.66,1,FL);
+if(ca>0.002){ctx.textAlign='center';ctx.textBaseline='middle';
+ctx.font='700 '+CLEARFS+'px '+FONT;
+ctx.fillStyle='rgba(0,0,0,'+ca.toFixed(3)+')';
+ctx.fillText(CLEARTXT,W/2,H/2);}
+ctx.restore();}
 }
 
 /* ═════════════════ 외부 인터페이스 ═════════════════ */
