@@ -86,10 +86,13 @@ c.addEventListener('click',function(e){var pt=toDesign(e.clientX,e.clientY);
 var mx=pt.x,my=pt.y;
 for(var i=0;i<Q.BOX.length;i++){var b=Q.BOX[i];
 if(b.role==='o'&&Math.abs(mx-b.x)<b.w/2&&Math.abs(my-b.y)<b.h/2){answer(b.i);return;}}});
-window.addEventListener('keydown',function(e){
-if(e.key==='F5'){e.preventDefault();restart();return;}
-if(e.code==='Space'||e.key===' '){e.preventDefault();if(!Q.dead)next();return;}
-if(e.key==='Escape'){e.preventDefault();if(!Q.dead)fail();return;}
+/* 글자 키는 e.code 로 받는다 — 한글 입력 상태에서 r/e 가 ㄱ/ㄷ 으로 들어오기 때문. */
+window.addEventListener('keydown',function(e){var c=e.code;
+if(e.key==='F5'||c==='KeyR'){e.preventDefault();restart();return;}
+if(c==='Space'||e.key===' '){e.preventDefault();if(!Q.dead)next();return;}
+if(c==='Escape'||e.key==='Escape'){e.preventDefault();if(!Q.dead)fail();return;}
+if(c==='Backspace'){e.preventDefault();undo();return;}
+if(c==='KeyE'){e.preventDefault();toggleLang();return;}
 if(!Q.cur||Q.dead)return;
 /* 주관식은 메인 창에서 채점하지 않는다. 관리자 창의 스페이스/Esc 로만 판정한다. */
 if(e.key>='1'&&e.key<='6')answer(parseInt(e.key,10)-1);},{passive:false});}
