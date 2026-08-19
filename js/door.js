@@ -388,5 +388,6 @@ export var canvas=c;
 export function toDesign(clientX,clientY){var r=c.getBoundingClientRect();
 return{x:(clientX-r.left)/(r.width||1)*EW-OX,y:(clientY-r.top)/(r.height||1)*EH-OY};}
 export function relayout(){layout();}
-export function resetAnim(){life=1;phase=0;}
+/* 재시작은 즉시. 문이 천천히 물러나면 다음 참가자를 기다리게 만든다. */
+export function resetAnim(){life=1;phase=0;solved=0;skipFrom=-1;}
 export function start(){layout();requestAnimationFrame(frame);}
