@@ -28,7 +28,7 @@ return B;}
 
 /* ═════════════════ 진행 상태 ═════════════════
    door.js 가 매 프레임 읽는 값. 필드 이름은 원본의 전역 변수명 그대로다. */
-export var Q={target:0,dead:0,cur:null,BOX:[],uiT:1,typed:'',pick:-1};
+export var Q={target:0,dead:0,cur:null,BOX:[],uiT:1,pick:-1};
 
 /* 렌더러·동기화가 걸어 두는 훅. 순환 임포트를 피하려고 콜백으로 둔다. */
 export var hooks={onRestart:null,onState:null};
@@ -47,14 +47,12 @@ function tell(){if(hooks.onState)hooks.onState(snapshot());}
 export function build(){QUIZ=[];for(var i=0;i<PLAN.length;i++){
 var pool=BANK.filter(function(q){return q.c===PLAN[i][0]&&q.l===PLAN[i][1];});
 QUIZ.push(pool.length?rnd(pool):BANK[0]);}load(0);}
-export function load(i){Q.cur=i<MAXQ?QUIZ[i]:null;Q.BOX=Q.cur?LAY(Q.cur):[];Q.typed='';Q.pick=-1;tell();}
+export function load(i){Q.cur=i<MAXQ?QUIZ[i]:null;Q.BOX=Q.cur?LAY(Q.cur):[];Q.pick=-1;tell();}
 export function next(){if(Q.target<MAXQ){lastAct='ok';Q.target++;Q.uiT=0;
 setTimeout(function(){load(Q.target);Q.uiT=1;},380);}}
 export function fail(){lastAct='ng';Q.dead=1;Q.uiT=0;tell();}
 export function answer(k){if(!Q.cur||Q.dead)return;if(Q.cur.t.indexOf('주관식')===0)return;
 Q.pick=k;if(k===Q.cur.a)next();else fail();}
-export function submit(){if(!Q.cur||Q.dead)return;var v=Q.typed.trim();
-for(var i=0;i<Q.cur.a.length;i++)if(v===Q.cur.a[i]){next();return;}fail();}
 export function restart(){Q.target=0;Q.dead=0;Q.uiT=1;lastAct=null;
 if(hooks.onRestart)hooks.onRestart();build();}
 
@@ -77,8 +75,5 @@ if(e.key==='F5'){e.preventDefault();restart();return;}
 if(e.code==='Space'||e.key===' '){e.preventDefault();if(!Q.dead)next();return;}
 if(e.key==='Escape'){e.preventDefault();if(!Q.dead)fail();return;}
 if(!Q.cur||Q.dead)return;
-if(Q.cur.t.indexOf('주관식')===0){
-if(e.key==='Enter')submit();
-else if(e.key==='Backspace')Q.typed=Q.typed.slice(0,-1);
-else if(e.key.length===1&&Q.typed.length<24)Q.typed+=e.key;}
-else if(e.key>='1'&&e.key<='6')answer(parseInt(e.key,10)-1);},{passive:false});}
+/* 주관식은 메인 창에서 채점하지 않는다. 관리자 창의 스페이스/Esc 로만 판정한다. */
+if(e.key>='1'&&e.key<='6')answer(parseInt(e.key,10)-1);},{passive:false});}

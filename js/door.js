@@ -1,6 +1,6 @@
 /* ═════════════════ 문 · 필터 렌더러 ═════════════════
    원본 quiz-seed(kucc_quiz).html 의 렌더링 코드를 그대로 옮긴 것이다.
-   진행 상태는 quiz.js 의 Q 를 읽기만 한다(target/dead/cur/BOX/uiT/typed/pick).
+   진행 상태는 quiz.js 의 Q 를 읽기만 한다(target/dead/cur/BOX/uiT/pick).
    그 외의 로직·상수·연산 순서는 원본과 동일하다.                        */
 import {Q,MAXQ} from './quiz.js';
 /* ═════════════════ 문 · 필터 상수 ═════════════════ */
@@ -164,7 +164,6 @@ for(var i=0;i<Q.BOX.length;i++){var b=Q.BOX[i],txt=null,fs=18,wt='500';
 if(b.role==='q'){txt=Q.cur.q;fs=23;wt='600';}
 else if(b.role==='o'){txt=Q.cur.o[b.i];fs=18;}
 else if(b.role==='illust'){txt='삽화';fs=15;}
-else if(b.role==='input'){txt=Q.typed+'▏';fs=22;}
 if(txt===null)continue;
 ctx.font=wt+' '+fs+'px -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif';
 var dim=(b.role==='illust')?0.30:(b.role==='o'&&Q.pick>=0&&Q.pick!==b.i?0.45:0.94);
