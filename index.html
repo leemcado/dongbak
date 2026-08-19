@@ -5,7 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>동아리 박람회 퀴즈</title>
 <style>
-  html,body{margin:0;height:100%;background:#000;overflow:hidden}
+  @font-face{font-family:"HeirofLight";src:url("assets/fonts/HeirofLight-Regular.otf") format("opentype");
+    font-weight:400;font-display:block}
+  @font-face{font-family:"HeirofLight";src:url("assets/fonts/HeirofLight-Bold.otf") format("opentype");
+    font-weight:700;font-display:block}
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;
+    font-family:"HeirofLight",-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif}
   #stage{position:fixed;inset:0;display:grid;place-items:center;background:#000}
   canvas{display:block;width:min(100vw,177.7778vh);height:min(56.25vw,100vh);cursor:pointer}
 </style>
@@ -30,6 +35,11 @@ else if(cmd==='restart')quiz.restart();}});
 quiz.hooks.onState=function(s){ch.post(s);};
 
 quiz.bindMainInput(door.canvas,door.VW,door.VH);
+/* 캔버스는 로드된 폰트만 쓸 수 있다. 첫 프레임 전에 두 굵기를 모두 받아 둔다. */
+await Promise.all([
+  document.fonts.load('400 25px "HeirofLight"'),
+  document.fonts.load('700 25px "HeirofLight"')
+]).catch(function(){});
 await quiz.loadBank('data/questions.json');
 quiz.build();
 door.start();

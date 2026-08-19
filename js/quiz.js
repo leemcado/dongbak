@@ -12,15 +12,15 @@ export var MAXQ=7;
 var COLL=166,COLR=794;
 export function LAY(q){var B=[],t=q.t;
 function box(x,y,w,h,r,role,i){B.push({x:x,y:y,w:w,h:h,r:r,role:role,i:i});}
-if(t==='주관식'){box(480,138,700,124,32,'q');}
-else if(t==='주관식삽화'){box(480,80,660,84,26,'q');box(480,292,380,250,30,'illust');}
-else if(t==='4지선다삽화'){box(480,70,660,76,24,'q');box(480,292,360,254,28,'illust');
+if(t==='주관식'){box(480,168,820,216,34,'q');}
+else if(t==='주관식삽화'){box(480,124,860,196,30,'q');box(480,382,430,250,30,'illust');}
+else if(t==='4지선다삽화'){box(480,80,860,112,26,'q');box(480,300,330,252,28,'illust');
 box(COLL,248,300,84,26,'o',0);box(COLR,248,300,84,26,'o',1);
 box(COLL,352,300,84,26,'o',2);box(COLR,352,300,84,26,'o',3);}
 else if(t==='6지선다'){box(480,76,660,82,26,'q');
 for(var i=0;i<6;i++)box(i%2?COLR:COLL,208+((i/2)|0)*102,300,80,26,'o',i);}
-else if(t==='선지사진'){box(480,70,660,76,24,'q');
-for(var i=0;i<4;i++)box(i%2?COLR+8:COLL-8,232+((i/2)|0)*196,288,176,26,'o',i);}
+else if(t==='선지사진'){box(480,74,780,84,24,'q');
+for(var i=0;i<4;i++)box(i%2?COLR+8:COLL-8,240+((i/2)|0)*200,300,184,26,'o',i);}
 else{box(480,82,660,88,26,'q');
 box(COLL,252,300,86,26,'o',0);box(COLR,252,300,86,26,'o',1);
 box(COLL,358,300,86,26,'o',2);box(COLR,358,300,86,26,'o',3);}
@@ -47,7 +47,13 @@ function tell(){if(hooks.onState)hooks.onState(snapshot());}
 export function build(){QUIZ=[];for(var i=0;i<PLAN.length;i++){
 var pool=BANK.filter(function(q){return q.c===PLAN[i][0]&&q.l===PLAN[i][1];});
 QUIZ.push(pool.length?rnd(pool):BANK[0]);}load(0);}
-export function load(i){Q.cur=i<MAXQ?QUIZ[i]:null;Q.BOX=Q.cur?LAY(Q.cur):[];Q.pick=-1;tell();}
+/* 문항의 img 배열을 박스에 붙인다. 삽화는 img[0], 선지사진은 선지 순서대로. */
+function attachImg(q,B){var im=q.img;if(!im||!im.length)return B;
+for(var i=0;i<B.length;i++){var b=B[i];
+if(b.role==='illust')b.img=im[0];
+else if(b.role==='o'&&q.t==='선지사진'&&im[b.i])b.img=im[b.i];}
+return B;}
+export function load(i){Q.cur=i<MAXQ?QUIZ[i]:null;Q.BOX=Q.cur?attachImg(Q.cur,LAY(Q.cur)):[];Q.pick=-1;tell();}
 export function next(){if(Q.target<MAXQ){lastAct='ok';Q.target++;Q.uiT=0;
 setTimeout(function(){load(Q.target);Q.uiT=1;},380);}}
 export function fail(){lastAct='ng';Q.dead=1;Q.uiT=0;tell();}

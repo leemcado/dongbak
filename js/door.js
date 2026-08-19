@@ -149,6 +149,50 @@ var BOXDEPTH=34,BOXCUT=1.05;   /* 박스 안쪽 감쇠 깊이 / 깎는 양 */
 function sdBox(px,py,b){var qx=Math.abs(px-b.x)-(b.w/2-b.r),qy=Math.abs(py-b.y)-(b.h/2-b.r);
 var ax=qx>0?qx:0,ay=qy>0?qy:0;
 return Math.min(Math.max(qx,qy),0)+Math.sqrt(ax*ax+ay*ay)-b.r;}
+/* ── 선지·삽화 이미지 ──
+   이미지도 필터 뒤에 놓인 객체다. 픽셀을 그대로 칠하지 않고 잉크 농도를
+   점 반지름과 알파에 더한다. 박스 감쇠로 파인 자리에 점이 다시 돋는 셈. */
+var FONT='"HeirofLight",-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif';
+var IRES=2,IMGAMP=GAPF*0.58,IMGA=0.9,IPAD=10,ILAB=24;
+var IMGC={};
+function imgField(src){var e=IMGC[src];if(e)return e;
+e=IMGC[src]={ready:0,w:0,h:0,ink:null,ar:1};
+var im=new Image();
+im.onload=function(){var w=Math.max(1,Math.round(im.width/IRES)),h=Math.max(1,Math.round(im.height/IRES));
+var o=document.createElement('canvas');o.width=w;o.height=h;
+var g=o.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0,w,h);
+var d=g.getImageData(0,0,w,h).data,N=w*h,ink=new Float32Array(N),tr=0;
+for(var i=0;i<N;i++)if(d[i*4+3]<250)tr++;
+var opaque=tr/N<=0.02,cl=0;
+if(opaque){var cs=[0,w-1,(h-1)*w,(h-1)*w+w-1];
+for(var k=0;k<4;k++){var j=cs[k]*4;cl+=(d[j]*0.299+d[j+1]*0.587+d[j+2]*0.114)/255;}cl/=4;}
+var inv=opaque&&cl>0.72;   /* 흰 바탕 그림은 어두운 쪽이 잉크 */
+for(var i=0;i<N;i++){var a=d[i*4+3]/255,
+L=(d[i*4]*0.299+d[i*4+1]*0.587+d[i*4+2]*0.114)/255;
+var v=opaque?(inv?1-L:L):a;
+ink[i]=ss(0.20,0.74,v);}   /* 대비를 세워야 점으로 옮겼을 때 형태가 남는다 */
+/* 잉크의 경계상자만 남긴다 — 여백을 버려야 같은 칸에 더 크게 들어간다 */
+var x0=w,y0=h,x1=-1,y1=-1;
+for(var j=0;j<h;j++)for(var i=0;i<w;i++)if(ink[j*w+i]>0.12){
+if(i<x0)x0=i;if(i>x1)x1=i;if(j<y0)y0=j;if(j>y1)y1=j;}
+if(x1<x0){x0=0;y0=0;x1=w-1;y1=h-1;}
+e.w=w;e.h=h;e.ink=ink;
+e.bx=x0;e.by=y0;e.bw=x1-x0+1;e.bh=y1-y0+1;e.ar=e.bw/e.bh;e.ready=1;};
+im.src=src;return e;}
+/* 박스 안에 '맞춤(contain)'으로 앉힌 이미지의 잉크값 */
+function inkOf(px,py,b,e){var lab=(b.role==='o')?ILAB:0;
+var mw=b.w-IPAD*2,mh=b.h-IPAD*2-lab;
+var w0=Math.min(mw,mh*e.ar),h0=w0/e.ar;
+var cx=b.x,cy=b.y-lab/2;
+var u=(px-(cx-w0/2))/w0,v=(py-(cy-h0/2))/h0;
+if(u<0||v<0||u>=1||v>=1)return 0;
+return e.ink[(e.by+((v*e.bh)|0))*e.w+e.bx+((u*e.bw)|0)];}
+function boxInk(px,py){if(uiA<0.01)return 0;
+for(var i=0;i<Q.BOX.length;i++){var b=Q.BOX[i];if(!b.img)continue;
+if(px<b.x-b.w/2||px>b.x+b.w/2||py<b.y-b.h/2||py>b.y+b.h/2)continue;
+var e=IMGC[b.img];if(!e||!e.ready)continue;
+return inkOf(px,py,b,e);}
+return 0;}
 function boxCut(px,py){if(uiA<0.01)return 0;var mx=0;
 for(var i=0;i<Q.BOX.length;i++){var b=Q.BOX[i];
 if(px<b.x-b.w/2-2||px>b.x+b.w/2+2||py<b.y-b.h/2-2||py>b.y+b.h/2+2)continue;
@@ -161,14 +205,18 @@ if(cu)ln.push(cu);return ln;}
 function drawText(){if(uiA<0.02||!Q.cur)return;
 ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
 for(var i=0;i<Q.BOX.length;i++){var b=Q.BOX[i],txt=null,fs=18,wt='500';
-if(b.role==='q'){txt=Q.cur.q;fs=23;wt='600';}
-else if(b.role==='o'){txt=Q.cur.o[b.i];fs=18;}
-else if(b.role==='illust'){txt='삽화';fs=15;}
-if(txt===null)continue;
-ctx.font=wt+' '+fs+'px -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif';
+if(b.role==='q'){txt=Q.cur.q;wt='700';
+fs=txt.length>150?20:txt.length>90?22:25;}
+else if(b.role==='o'){txt=Q.cur.o[b.i];fs=b.img?17:19;}
+else if(b.role==='illust'){if(b.img)continue;txt='삽화';fs=15;}
+if(txt===null||txt==='')continue;
+ctx.font=wt+' '+fs+'px '+FONT;
 var dim=(b.role==='illust')?0.30:(b.role==='o'&&Q.pick>=0&&Q.pick!==b.i?0.45:0.94);
 ctx.fillStyle='rgba(255,255,255,'+(dim*uiA).toFixed(3)+')';
-var ln=wrap(ctx,txt,b.w-52),lh=fs*1.45,y0=b.y-(ln.length-1)*lh/2;
+var ln=wrap(ctx,txt,b.w-52),lh=fs*1.45;
+/* 이미지가 있는 선지는 글씨를 박스 아래쪽으로 내려 그림과 겹치지 않게 한다 */
+var cy=b.img?(b.y+b.h/2-IPAD-lh*(ln.length-0.5)+lh/2):b.y;
+var y0=cy-(ln.length-1)*lh/2;
 for(var k=0;k<ln.length;k++)ctx.fillText(ln[k],b.x,y0+k*lh);}
 ctx.restore();}
  
@@ -195,6 +243,7 @@ var bg=life*(1-ss(0,T3,P)),dOn=life*(1-sA);
 for(var j=0;j<NH;j++)for(var i=0;i<NW;i++){
 var n=vn(i*0.0475,j*0.0475,t)*0.58+vn(i*0.0992+9,j*0.0992+4,t*1.6+17)*0.42;
 nf[j*NW+i]=n*n*(3-2*n);}
+for(var bi=0;bi<Q.BOX.length;bi++)if(Q.BOX[bi].img)imgField(Q.BOX[bi].img);
 ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
 var nAmp=GAPF*0.17*bg,base=GAPF*0.028*bg;
 var dAmp=GAPF*(0.13+grow*BEAD)*dOn,halo=0.18*(1-sA),sig2=2*Math.pow(4.6+grow*2.2,2);
@@ -210,9 +259,10 @@ if(rx>=479){var dr=smp(fRO,rx,qy);if(!inM(MKO,rx,qy))dr=Math.min(dr,smp(fRB,rx,q
 d=Math.min(d,smp(fG,sx,sy)/rel)*DS*ZM;
 var f=Math.min(1,Math.exp(-(d*d)/sig2)+Math.exp(-(d*d)/1400)*halo);
 var n=nAt(x,y),k=j*cols+i;
-var r=base+n*n*nAmp+f*dAmp-boxCut(x,y);
+var ik=boxInk(x,y);
+var r=base+n*n*nAmp+f*dAmp-boxCut(x,y)+ik*IMGAMP*uiA;
 R[k]=r>0?r:0;
-A[k]=Math.min(1,(0.10+n*0.62)*bg+f*0.55*dOn);}}
+A[k]=Math.min(1,(0.10+n*0.62)*bg+f*0.55*dOn+ik*IMGA*uiA);}}
 ctx.lineCap='round';
 if(grow>0.03&&sA<0.99){
 for(var j=0;j<rows;j++)for(var i=0;i<cols;i++){var k=j*cols+i;if(R[k]<GAPF*0.2)continue;

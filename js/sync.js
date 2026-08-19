@@ -18,5 +18,11 @@ if(role==='main'){
 if(m.type==='hello'){if(getState)post(getState());}   /* 관리자가 새로 열렸다 — 현재 상태를 다시 알린다 */
 else if(m.type==='cmd'&&on)on(m.cmd);}
 else if(m.type==='state'&&on)on(m.state);};
-if(role==='admin')ch.postMessage({type:'hello'});
+/* 관리자가 메인보다 먼저 열리면 hello 를 들을 상대가 없다.
+   상태가 한 번 올 때까지 되풀이해 부른다. */
+if(role==='admin'){var got=0,n=0;
+var inner=on;on=function(v){got=1;if(inner)inner(v);};
+ch.onmessage=function(e){var m=e.data;if(m&&m.type==='state'&&on)on(m.state);};
+var ping=function(){if(got||n++>600)return;
+ch.postMessage({type:'hello'});setTimeout(ping,1000);};ping();}
 return{post:post,alive:true};}
