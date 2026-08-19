@@ -49,9 +49,11 @@ var pool=BANK.filter(function(q){return q.c===PLAN[i][0]&&q.l===PLAN[i][1];});
 QUIZ.push(pool.length?rnd(pool):BANK[0]);}load(0);}
 /* 문항의 img 배열을 박스에 붙인다. 삽화는 img[0], 선지사진은 선지 순서대로. */
 function attachImg(q,B){var im=q.img;if(!im||!im.length)return B;
+var md=q.imgmode||'invert';
 for(var i=0;i<B.length;i++){var b=B[i];
 if(b.role==='illust')b.img=im[0];
-else if(b.role==='o'&&q.t==='선지사진'&&im[b.i])b.img=im[b.i];}
+else if(b.role==='o'&&q.t==='선지사진'&&im[b.i])b.img=im[b.i];
+if(b.img)b.imode=md;}
 return B;}
 export function load(i){Q.cur=i<MAXQ?QUIZ[i]:null;Q.BOX=Q.cur?attachImg(Q.cur,LAY(Q.cur)):[];Q.pick=-1;tell();}
 export function next(){if(Q.target<MAXQ){lastAct='ok';Q.target++;Q.uiT=0;

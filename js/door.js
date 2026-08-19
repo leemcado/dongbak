@@ -134,8 +134,11 @@ g.lineCap='round';g.lineJoin='round';g.lineWidth=lw/Math.max(sc,0.16);
 g.strokeStyle='rgba(255,255,255,'+al.toFixed(3)+')';g.beginPath();
 for(var i=0;i<sp.length;i++){var p=sp[i];g.moveTo(p[0],p[1]);for(var k=6;k<p.length;k+=6)g.lineTo(p[k],p[k+1]);g.lineTo(p[p.length-2],p[p.length-1]);}
 g.stroke();g.restore();}
+/* ctx.filter 의 blur 는 변환과 무관한 장치 픽셀 단위다.
+   설계 단위로 지정한 반경이 화면 크기와 함께 커지도록 SCL 을 곱한다. */
 function bl(g,src,rad,al){if(al<=0.002)return;g.save();g.globalCompositeOperation='lighter';
-if(FILT)g.filter='blur('+rad.toFixed(1)+'px)';else{g.shadowColor='#fff';g.shadowBlur=rad;}
+var rp=rad*SCL;
+if(FILT)g.filter='blur('+rp.toFixed(1)+'px)';else{g.shadowColor='#fff';g.shadowBlur=rp;}
 g.globalAlpha=Math.min(1,al);g.drawImage(src,-OX,-OY,EW,EH);g.restore();}
 function paste(){ctx.save();ctx.globalCompositeOperation='lighter';ctx.drawImage(LYR.c,-OX,-OY,EW,EH);ctx.restore();}
 var SC=1,LGX=0,LGY=0,LGK=0;
@@ -184,8 +187,22 @@ return Math.min(Math.max(qx,qy),0)+Math.sqrt(ax*ax+ay*ay)-b.r;}
 var FONT='"HeirofLight",-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif';
 var IPAD=10,ILAB=24,IMGDIM=0.94,IMAX=560;
 var IMGC={};
-function imgField(src){var e=IMGC[src];if(e)return e;
-e=IMGC[src]={ready:0,cv:null,ar:1};
+/* 배경(테두리에서 이어진 흰 영역)만 걷어낸다. 안쪽에 갇힌 흰색(마스코트 얼굴)은 남는다. */
+function keyBg(p,w,h){var seen=new Uint8Array(w*h),st=[],i,x,y;
+function pale(i){var j=i*4,r=p[j],g2=p[j+1],b=p[j+2],
+mx=Math.max(r,Math.max(g2,b)),mn=Math.min(r,Math.min(g2,b));
+return mx>184&&(mx-mn)<58;}
+for(x=0;x<w;x++){st.push(x);st.push((h-1)*w+x);}
+for(y=0;y<h;y++){st.push(y*w);st.push(y*w+w-1);}
+while(st.length){i=st.pop();if(seen[i])continue;seen[i]=1;
+if(!pale(i))continue;
+p[i*4+3]=0;
+x=i%w;y=(i/w)|0;
+if(x>0)st.push(i-1);if(x<w-1)st.push(i+1);
+if(y>0)st.push(i-w);if(y<h-1)st.push(i+w);}}
+/* mode: 'invert' 명도 반전(기본) | 'keyout' 배경만 제거 | 'none' 원본 그대로 */
+function imgField(src,mode){mode=mode||'invert';var key=mode+'|'+src,e=IMGC[key];if(e)return e;
+e=IMGC[key]={ready:0,cv:null,ar:1};
 var im=new Image();
 im.onload=function(){
 var w=im.width,h=im.height,k=Math.min(1,IMAX/Math.max(w,h));
@@ -193,13 +210,15 @@ w=Math.max(1,Math.round(w*k));h=Math.max(1,Math.round(h*k));
 var o=document.createElement('canvas');o.width=w;o.height=h;
 var g=o.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0,w,h);
 var d=g.getImageData(0,0,w,h),p=d.data,N=w*h;
+if(mode==='invert'){
 /* 명도만 뒤집는다 — HSL 의 L 을 1-L 로 보내되 H·S 는 그대로.
-   그 변환은 각 채널에 (1 - (max+min)) 를 더하는 것과 정확히 같다.
+   그 변환은 각 채널에 (255 - (max+min)) 를 더하는 것과 정확히 같다.
    흰 바탕은 검게, 검은 선은 희게 가면서 빨간 로고는 빨간 채로 남는다. */
 for(var i=0;i<N;i++){var j=i*4,
 r=p[j],gg2=p[j+1],b2=p[j+2],
 off=255-(Math.max(r,Math.max(gg2,b2))+Math.min(r,Math.min(gg2,b2)));
-p[j]=r+off;p[j+1]=gg2+off;p[j+2]=b2+off;}
+p[j]=r+off;p[j+1]=gg2+off;p[j+2]=b2+off;}}
+else if(mode==='keyout')keyBg(p,w,h);
 /* 가장자리 페더 — 액자 테두리 티를 없앤다 */
 var fx=Math.max(5,w*0.055),fy=Math.max(5,h*0.055);
 for(var y=0;y<h;y++)for(var x=0;x<w;x++){
@@ -215,7 +234,7 @@ var w0=Math.min(mw,mh*e.ar),h0=w0/e.ar;
 return{x:b.x-w0/2,y:b.y-lab/2-h0/2,w:w0,h:h0};}
 function drawImages(){if(uiA<0.02||!Q.cur)return;
 for(var i=0;i<Q.BOX.length;i++){var b=Q.BOX[i];if(!b.img)continue;
-var e=IMGC[b.img];if(!e||!e.ready)continue;
+var e=IMGC[(b.imode||'invert')+'|'+b.img];if(!e||!e.ready)continue;
 var f=fitImg(b,e),dim=(b.role==='o'&&Q.pick>=0&&Q.pick!==b.i)?0.38:1;
 ctx.save();ctx.globalAlpha=Math.min(1,uiA*IMGDIM*dim);
 ctx.drawImage(e.cv,f.x,f.y,f.w,f.h);ctx.restore();}}
@@ -228,7 +247,16 @@ function wrap(g,txt,mw){var w=txt.split(' '),ln=[],cu='';
 for(var i=0;i<w.length;i++){var tr=cu?cu+' '+w[i]:w[i];
 if(g.measureText(tr).width>mw&&cu){ln.push(cu);cu=w[i];}else cu=tr;}
 if(cu)ln.push(cu);return ln;}
+var TG1=4.5,TGA1=0.60,TG2=13,TGA2=0.34;
+/* 글자를 레이어에 한 번 모아 그린 뒤 통째로 가우시안 블러를 먹여 얹는다.
+   글자마다 그림자를 다는 것과 달리, 문장 덩어리 전체가 은은하게 번진다. */
 function drawText(){if(uiA<0.02||!Q.cur)return;
+LYR.g.clearRect(-OX,-OY,EW,EH);
+paintText(LYR.g);
+bl(ctx,LYR.c,TG1,TGA1);
+bl(ctx,LYR.c,TG2,TGA2);
+paintText(ctx);}
+function paintText(ctx){
 ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
 for(var i=0;i<Q.BOX.length;i++){var b=Q.BOX[i],txt=null,fs=18,wt='500';
 var EN=Q.lang==='en';
@@ -247,15 +275,6 @@ var ln=wrap(ctx,txt,b.w-52),lh=fs*1.45;
 /* 이미지가 있는 선지는 글씨를 박스 아래쪽으로 내려 그림과 겹치지 않게 한다 */
 var cy=b.img?(b.y+b.h/2-IPAD-lh*(ln.length-0.5)+lh/2):b.y;
 var y0=cy-(ln.length-1)*lh/2;
-/* 은은한 후광 — 넓게 한 겹, 좁게 한 겹 깔고 그 위에 또렷한 글자를 얹는다 */
-ctx.globalCompositeOperation='lighter';
-ctx.shadowColor='rgba(255,255,255,'+(al*0.55).toFixed(3)+')';
-ctx.fillStyle='rgba(255,255,255,'+(al*0.30).toFixed(3)+')';
-ctx.shadowBlur=fs*1.15;
-for(var k=0;k<ln.length;k++)ctx.fillText(ln[k],b.x,y0+k*lh);
-ctx.shadowBlur=fs*0.42;
-for(var k=0;k<ln.length;k++)ctx.fillText(ln[k],b.x,y0+k*lh);
-ctx.shadowBlur=0;ctx.globalCompositeOperation='source-over';
 ctx.fillStyle='rgba(255,255,255,'+al.toFixed(3)+')';
 for(var k=0;k<ln.length;k++)ctx.fillText(ln[k],b.x,y0+k*lh);}
 ctx.restore();}
@@ -283,7 +302,7 @@ var bg=life*(1-ss(0,T3,P)),dOn=life*(1-sA);
 for(var j=0;j<NH;j++)for(var i=0;i<NW;i++){
 var n=vn(i*0.0475,j*0.0475,t)*0.58+vn(i*0.0992+9,j*0.0992+4,t*1.6+17)*0.42;
 nf[j*NW+i]=n*n*(3-2*n);}
-for(var bi=0;bi<Q.BOX.length;bi++)if(Q.BOX[bi].img)imgField(Q.BOX[bi].img);
+for(var bi=0;bi<Q.BOX.length;bi++)if(Q.BOX[bi].img)imgField(Q.BOX[bi].img,Q.BOX[bi].imode);
 ctx.fillStyle='#000';ctx.fillRect(-OX,-OY,EW,EH);
 var nAmp=GAPF*0.17*bg,base=GAPF*0.028*bg;
 var dAmp=GAPF*(0.13+grow*BEAD)*dOn,halo=0.18*(1-sA),sig2=2*Math.pow(4.6+grow*2.2,2);
