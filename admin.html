@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>관리자 — 동아리 박람회 퀴즈</title>
+<style>
+  /* 디자인은 넣지 않는다. 어두운 박람회장에서는 흰 배경에 검은 큰 글씨가 가장 읽기 좋다. */
+  html,body{margin:0;background:#fff;color:#000;
+    font:400 20px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
+  body{padding:28px 36px 60px;max-width:1100px}
+  #prog{font-size:34px;font-weight:700}
+  #meta{font-size:22px;margin-top:2px}
+  #q{font-size:40px;font-weight:700;line-height:1.35;margin:22px 0 18px}
+  ol{font-size:28px;margin:0;padding-left:1.6em}
+  li{margin:6px 0}
+  li.ok::marker{color:#000;font-weight:700}
+  li.ok>span{background:#000;color:#fff;padding:2px 12px}
+  #ans{font-size:30px;font-weight:700;margin:14px 0}
+  h2{font-size:17px;letter-spacing:.14em;margin:30px 0 6px;font-weight:700}
+  #x{font-size:21px}
+  #nxt{font-size:21px}
+  hr{border:0;border-top:3px solid #000;margin:26px 0}
+  #keys{position:fixed;right:0;bottom:0;left:0;background:#000;color:#fff;
+    font-size:19px;padding:9px 36px;letter-spacing:.02em}
+  #link{font-size:16px;color:#666;margin-top:8px}
+</style>
+</head>
+<body>
+<div id="prog">—</div>
+<div id="meta"></div>
+<div id="q">메인 창을 열어 주세요.</div>
+<ol id="o"></ol>
+<div id="ans"></div>
+<h2>해설</h2><div id="x"></div>
+<hr>
+<h2>다음 문제</h2><div id="nxt"></div>
+<div id="link"></div>
+<div id="keys">스페이스 정답 · Esc 오답 · Backspace 직전 판정 취소 · R 처음부터</div>
+<script type="module">
+import {open} from './js/sync.js';
+
+var $=function(id){return document.getElementById(id);};
+var st=null;
+
+var ch=open('admin',{on:function(s){st=s;render(s);}});
+if(!ch.alive)$('q').textContent='이 브라우저는 BroadcastChannel 을 지원하지 않습니다.';
+
+function render(s){
+if(!s){$('prog').textContent='—';return;}
+var c=s.cur;
+$('prog').textContent=c?(s.i+1)+' / '+s.total:(s.dead?'실패':'문 개방');
+$('meta').textContent=c?(c.c+'  ·  '+c.l+'  ·  '+c.t):'';
+$('q').textContent=c?c.q:(s.dead?'오답으로 종료되었습니다. R 로 다시 시작하세요.':'7문제를 모두 맞혔습니다.');
+var ol=$('o');ol.innerHTML='';
+if(c&&c.o&&c.o.length){for(var i=0;i<c.o.length;i++){
+var li=document.createElement('li'),sp=document.createElement('span');
+sp.textContent=c.o[i];li.appendChild(sp);
+if(i===c.a)li.className='ok';ol.appendChild(li);}}
+$('ans').textContent=c?('정답 — '+(c.o&&c.o.length?(c.a+1)+'번  '+c.o[c.a]:[].concat(c.a).join('  /  '))):'';
+$('x').textContent=c?(c.x||''):'';
+$('nxt').textContent=s.nxt?(s.nxt.c+' · '+s.nxt.l+' · '+s.nxt.t+'  —  '+s.nxt.q):'— 마지막 문제입니다';
+$('link').textContent=s.undoable?'':'되돌릴 판정이 없습니다.';}
+
+/* 채점 키는 관리자 창에서만 받는다. 메인 창의 주관식 입력과 충돌하지 않도록. */
+window.addEventListener('keydown',function(e){
+if(e.code==='Space'||e.key===' '){e.preventDefault();ch.post('ok');}
+else if(e.key==='Escape'){e.preventDefault();ch.post('ng');}
+else if(e.key==='Backspace'){e.preventDefault();ch.post('undo');}
+else if(e.key==='r'||e.key==='R'){e.preventDefault();ch.post('restart');}},{passive:false});
+</script>
+</body>
+</html>

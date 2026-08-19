@@ -1,101 +1,10 @@
-
-
-Quiz seed · HTML
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>동아리 박람회 퀴즈</title>
-<style>
-  html,body{margin:0;height:100%;background:#000;overflow:hidden}
-  #stage{position:fixed;inset:0;display:grid;place-items:center;background:#000}
-  canvas{display:block;width:min(100vw,177.7778vh);height:min(56.25vw,100vh);cursor:pointer}
-  #dev{position:fixed;left:12px;bottom:10px;font:11px/1.5 ui-monospace,monospace;
-       color:rgba(255,255,255,.28);pointer-events:none;letter-spacing:.06em}
-</style>
-</head>
-<body>
-<div id="stage"><canvas id="rC"></canvas></div>
-<div id="dev"></div>
-<svg id="rSvg" width="0" height="0" style="position:absolute;opacity:0;pointer-events:none"></svg>
-<script>
-(function(){
-/* ═════════════════ 문제 데이터 ═════════════════
-   t 유형 · c 범주 · l 난이도 · q 문제 · o 선지 · a 정답 · x 해설
-   t : 주관식 | 4지선다 | 6지선다 | 주관식삽화 | 4지선다삽화 | 선지사진
-   c : club | history | brain      l : 쉬움 | 보통 | 어려움
-   a : 선다형은 정답 선지 인덱스, 주관식은 허용 답안 배열
-   x : 해설. 저장만 되고 메인 화면에는 렌더링하지 않음
-   ※ 아래 문항은 구조 확인용 임시 데이터. 실제 내용으로 교체할 것       */
-var BANK=[
-{t:'4지선다',c:'club',l:'쉬움',q:'우리 동아리의 마스코트는 어떤 동물일까요?',
- o:['부엉이','독수리','고양이','여우'],a:0,
- x:'로고의 둥근 얼굴과 뾰족한 귀는 부엉이를 단순화한 형태입니다. 독수리는 라이벌 대학의 상징이라 채택하지 않았습니다.'},
-{t:'4지선다',c:'club',l:'쉬움',q:'동아리방에서 가장 자주 들리는 소리는?',
- o:['키보드 소리','기타 소리','드럼 소리','휘파람'],a:0,
- x:'컴퓨터 동아리인 만큼 대부분의 시간이 코드를 작성하며 흘러갑니다.'},
-{t:'선지사진',c:'club',l:'보통',q:'다음 중 우리 동아리 로고는 무엇일까요?',
- o:['후보 1','후보 2','후보 3','후보 4'],a:1,
- x:'말풍선 안에 부엉이 얼굴이 들어간 두 번째 도안이 현재 사용 중인 로고입니다.'},
-{t:'6지선다',c:'club',l:'보통',q:'동아리 정기 세션에서 다루지 않는 주제는?',
- o:['알고리즘','웹 개발','머신러닝','보안','임베디드','제빵'],a:5,
- x:'앞의 다섯 가지는 정기 세션의 상시 트랙입니다. 제빵은 뒤풀이에서만 등장합니다.'},
-{t:'주관식',c:'club',l:'어려움',q:'우리 동아리가 창립된 해는 몇 년일까요? (숫자 네 자리)',
- o:[],a:['1983'],x:'창립 연도를 적는 문항입니다. 실제 값으로 교체해 주세요.'},
-{t:'4지선다삽화',c:'club',l:'어려움',q:'삽화에 그려진 동아리방 배치에서 서버가 놓인 자리는?',
- o:['창가','문 옆','책장 뒤','중앙 책상'],a:2,
- x:'열과 소음 때문에 서버는 사람 동선에서 가장 먼 책장 뒤에 둡니다.'},
-{t:'4지선다',c:'history',l:'쉬움',q:'고려대학교의 상징 동물은 무엇일까요?',
- o:['호랑이','사자','곰','매'],a:0,x:'호랑이는 고려대학교를 대표하는 상징 동물입니다.'},
-{t:'4지선다',c:'history',l:'쉬움',q:'고려대학교의 상징색은 무엇일까요?',
- o:['크림슨','네이비','에메랄드','골드'],a:0,x:'짙은 붉은색 계열인 크림슨이 상징색입니다.'},
-{t:'주관식',c:'history',l:'보통',q:'고려대학교의 전신인 사립학교의 이름은 무엇일까요?',
- o:[],a:['보성전문학교','보성전문'],x:'1905년 설립된 보성전문학교가 고려대학교의 전신입니다.'},
-{t:'6지선다',c:'history',l:'보통',q:'다음 중 고려대학교 서울 캠퍼스에 없는 것은?',
- o:['중앙광장','인촌기념관','대운동장','백주년기념관','과학도서관','천문대'],a:5,
- x:'앞의 다섯 곳은 서울 캠퍼스의 주요 시설입니다.'},
-{t:'4지선다',c:'history',l:'어려움',q:'본관 석조 건물이 준공된 시기는 언제일까요?',
- o:['1920년대','1930년대','1940년대','1950년대'],a:1,
- x:'본관은 1930년대에 준공된 석조 건물로, 현재 사적으로 지정되어 있습니다.'},
-{t:'주관식삽화',c:'history',l:'어려움',q:'삽화 속 건물의 이름을 적어주세요.',
- o:[],a:['본관'],x:'시계탑과 좌우 대칭 석조 파사드가 본관의 특징입니다.'},
-{t:'4지선다',c:'brain',l:'어려움',q:'1, 1, 2, 3, 5, 8, 13 다음에 올 수는?',
- o:['18','20','21','26'],a:2,x:'피보나치 수열입니다. 8 + 13 = 21.'},
-{t:'6지선다',c:'brain',l:'어려움',q:'세 개의 스위치와 전구 하나. 한 번만 방에 들어가 확인할 때 필요한 관찰 요소는?',
- o:['빛','소리','온도','빛과 온도','소리와 온도','불가능'],a:3,
- x:'하나는 켜 두고, 다른 하나는 켰다 끄고 들어갑니다. 켜진 전구는 빛으로, 방금 껐던 전구는 남은 열로 구분합니다.'},
-{t:'주관식삽화',c:'brain',l:'어려움',q:'삽화의 규칙을 따를 때 빈칸에 들어갈 문자는?',
- o:[],a:['E'],x:'삽화 데이터가 준비되면 규칙에 맞춰 해설을 채워 주세요.'}];
- 
-/* 7문항 추출 규칙: (범주, 난이도) 칸마다 하나씩 랜덤 */
-var PLAN=[['club','쉬움'],['club','보통'],['club','어려움'],
-          ['history','쉬움'],['history','보통'],['history','어려움'],
-          ['brain','어려움']];
- 
-/* ═════════════════ 인터페이스 배치 (960×540) ═════════════════
-   선지는 문을 비껴가도록 좌우 열로. COLL/COLR 안쪽 가장자리가
-   문설주(x≈319 / 641) 바로 바깥에서 멈춘다.                      */
-var COLL=166,COLR=794;
-function LAY(q){var B=[],t=q.t;
-function box(x,y,w,h,r,role,i){B.push({x:x,y:y,w:w,h:h,r:r,role:role,i:i});}
-if(t==='주관식'){box(480,138,700,124,32,'q');box(480,348,520,86,26,'input');}
-else if(t==='주관식삽화'){box(480,80,660,84,26,'q');box(480,292,380,250,30,'illust');box(480,472,520,66,24,'input');}
-else if(t==='4지선다삽화'){box(480,70,660,76,24,'q');box(480,292,360,254,28,'illust');
-box(COLL,248,300,84,26,'o',0);box(COLR,248,300,84,26,'o',1);
-box(COLL,352,300,84,26,'o',2);box(COLR,352,300,84,26,'o',3);}
-else if(t==='6지선다'){box(480,76,660,82,26,'q');
-for(var i=0;i<6;i++)box(i%2?COLR:COLL,208+((i/2)|0)*102,300,80,26,'o',i);}
-else if(t==='선지사진'){box(480,70,660,76,24,'q');
-for(var i=0;i<4;i++)box(i%2?COLR+8:COLL-8,232+((i/2)|0)*196,288,176,26,'o',i);}
-else{box(480,82,660,88,26,'q');
-box(COLL,252,300,86,26,'o',0);box(COLR,252,300,86,26,'o',1);
-box(COLL,358,300,86,26,'o',2);box(COLR,358,300,86,26,'o',3);}
-return B;}
-var BOXDEPTH=34,BOXCUT=1.05;   /* 박스 안쪽 감쇠 깊이 / 깎는 양 */
- 
+/* ═════════════════ 문 · 필터 렌더러 ═════════════════
+   원본 quiz-seed(kucc_quiz).html 의 렌더링 코드를 그대로 옮긴 것이다.
+   진행 상태는 quiz.js 의 Q 를 읽기만 한다(target/dead/cur/BOX/uiT/typed/pick).
+   그 외의 로직·상수·연산 순서는 원본과 동일하다.                        */
+import {Q,MAXQ} from './quiz.js';
 /* ═════════════════ 문 · 필터 상수 ═════════════════ */
-var W=960,H=540,MIR=960,PVX=480,PVY=H*0.8,MAXQ=7,GAPF=8.48,DS0=0.5,DS1=1.0;
+var W=960,H=540,MIR=960,PVX=480,PVY=H*0.8,GAPF=8.48,DS0=0.5,DS1=1.0;
 var MERGE=4.7,HOLD=0.8,THIN=2.1,WAIT=0.9,MOVE=3.6,OPENW=0.5,LWF=2.6;
 var DMIN=0.16,WEXP=1.4,PAUSE=0.9,UA=0.45,RUSH=4.6;
 var SPD=1.8,GLOW=2.5,FLARE=0.29,BLURK=0.55,BEAD=0.45,LWSTART=0.95;
@@ -177,39 +86,11 @@ function nAt(x,y){var u=x/W*(NW-1),v=y/H*(NH-1),i=u|0,j=v|0,fu=u-i,fv=v-j;
 var a=nf[j*NW+i],b=nf[j*NW+i+1],cc=nf[(j+1)*NW+i],d=nf[(j+1)*NW+i+1];
 return a+(b-a)*fu+(cc-a)*fv+(a-b-cc+d)*fu*fv;}
 function ss(a,b,x){var t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);}
- 
-/* ═════════════════ 진행 상태 ═════════════════ */
-var target=0,dead=0,solved=0,life=1,phase=0,t=0,last=0,DS=DS0,ZM=1;
-var QUIZ=[],cur=null,BOX=[],uiA=0,uiT=1,typed='',pick=-1;
-var dev=document.getElementById('dev');
-function rnd(a){return a[(Math.random()*a.length)|0];}
-function build(){QUIZ=[];for(var i=0;i<PLAN.length;i++){
-var pool=BANK.filter(function(q){return q.c===PLAN[i][0]&&q.l===PLAN[i][1];});
-QUIZ.push(pool.length?rnd(pool):BANK[0]);}load(0);}
-function load(i){cur=i<MAXQ?QUIZ[i]:null;BOX=cur?LAY(cur):[];typed='';pick=-1;
-dev.textContent=cur?(i+1)+' / '+MAXQ+'  '+cur.c+'  '+cur.l+'  '+cur.t:(dead?'실패':'문 개방');}
-function next(){if(target<MAXQ){target++;uiT=0;setTimeout(function(){load(target);uiT=1;},380);}}
-function fail(){dead=1;uiT=0;dev.textContent='실패';}
-function answer(k){if(!cur||dead)return;if(cur.t.indexOf('주관식')===0)return;
-pick=k;if(k===cur.a)next();else fail();}
-function submit(){if(!cur||dead)return;var v=typed.trim();
-for(var i=0;i<cur.a.length;i++)if(v===cur.a[i]){next();return;}fail();}
-function restart(){target=0;dead=0;life=1;phase=0;uiT=1;build();}
-c.addEventListener('click',function(e){var r=c.getBoundingClientRect();
-var mx=(e.clientX-r.left)/r.width*W,my=(e.clientY-r.top)/r.height*H;
-for(var i=0;i<BOX.length;i++){var b=BOX[i];
-if(b.role==='o'&&Math.abs(mx-b.x)<b.w/2&&Math.abs(my-b.y)<b.h/2){answer(b.i);return;}}});
-window.addEventListener('keydown',function(e){
-if(e.key==='F5'){e.preventDefault();restart();return;}
-if(e.code==='Space'||e.key===' '){e.preventDefault();if(!dead)next();return;}
-if(e.key==='Escape'){e.preventDefault();if(!dead)fail();return;}
-if(!cur||dead)return;
-if(cur.t.indexOf('주관식')===0){
-if(e.key==='Enter')submit();
-else if(e.key==='Backspace')typed=typed.slice(0,-1);
-else if(e.key.length===1&&typed.length<24)typed+=e.key;}
-else if(e.key>='1'&&e.key<='6')answer(parseInt(e.key,10)-1);},{passive:false});
- 
+
+/* ═════════════════ 애니메이션 상태 ═════════════════ */
+var solved=0,life=1,phase=0,t=0,last=0,DS=DS0,ZM=1;
+var uiA=0;
+
 /* 격자 — 화면 중앙을 원점으로 하는 고정 필터 */
 var cols=0,rows=0,X=[],Y=[],R=null,A=null;
 (function(){var cx=W/2,cy=H/2,nl=Math.ceil(cx/GAPF),nt=Math.ceil(cy/GAPF);
@@ -263,12 +144,13 @@ g.beginPath();g.moveTo(lL,BASEY);g.lineTo(lL,SPR);
 for(var i=0;i<ARC.length;i+=2)g.lineTo(Math.max(ARC[i],lL),ARC[i+1]);
 for(var i=ARC.length-2;i>=0;i-=2)g.lineTo(Math.min(MIR-ARC[i],rL),ARC[i+1]);
 g.lineTo(rL,SPR);g.lineTo(rL,BASEY);g.closePath();return true;}
+var BOXDEPTH=34,BOXCUT=1.05;   /* 박스 안쪽 감쇠 깊이 / 깎는 양 */
 /* 둥근 사각형 부호거리 — 안쪽 깊이만큼 점 반지름을 뺀다(곱셈 아님) */
 function sdBox(px,py,b){var qx=Math.abs(px-b.x)-(b.w/2-b.r),qy=Math.abs(py-b.y)-(b.h/2-b.r);
 var ax=qx>0?qx:0,ay=qy>0?qy:0;
 return Math.min(Math.max(qx,qy),0)+Math.sqrt(ax*ax+ay*ay)-b.r;}
 function boxCut(px,py){if(uiA<0.01)return 0;var mx=0;
-for(var i=0;i<BOX.length;i++){var b=BOX[i];
+for(var i=0;i<Q.BOX.length;i++){var b=Q.BOX[i];
 if(px<b.x-b.w/2-2||px>b.x+b.w/2+2||py<b.y-b.h/2-2||py>b.y+b.h/2+2)continue;
 var d=-sdBox(px,py,b);if(d>mx)mx=d;}
 return mx/BOXDEPTH*BOXCUT*uiA;}
@@ -276,27 +158,28 @@ function wrap(g,txt,mw){var w=txt.split(' '),ln=[],cu='';
 for(var i=0;i<w.length;i++){var tr=cu?cu+' '+w[i]:w[i];
 if(g.measureText(tr).width>mw&&cu){ln.push(cu);cu=w[i];}else cu=tr;}
 if(cu)ln.push(cu);return ln;}
-function drawText(){if(uiA<0.02||!cur)return;
+function drawText(){if(uiA<0.02||!Q.cur)return;
 ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
-for(var i=0;i<BOX.length;i++){var b=BOX[i],txt=null,fs=18,wt='500';
-if(b.role==='q'){txt=cur.q;fs=23;wt='600';}
-else if(b.role==='o'){txt=cur.o[b.i];fs=18;}
+for(var i=0;i<Q.BOX.length;i++){var b=Q.BOX[i],txt=null,fs=18,wt='500';
+if(b.role==='q'){txt=Q.cur.q;fs=23;wt='600';}
+else if(b.role==='o'){txt=Q.cur.o[b.i];fs=18;}
 else if(b.role==='illust'){txt='삽화';fs=15;}
-else if(b.role==='input'){txt=typed+'▏';fs=22;}
+else if(b.role==='input'){txt=Q.typed+'▏';fs=22;}
 if(txt===null)continue;
 ctx.font=wt+' '+fs+'px -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif';
-var dim=(b.role==='illust')?0.30:(b.role==='o'&&pick>=0&&pick!==b.i?0.45:0.94);
+var dim=(b.role==='illust')?0.30:(b.role==='o'&&Q.pick>=0&&Q.pick!==b.i?0.45:0.94);
 ctx.fillStyle='rgba(255,255,255,'+(dim*uiA).toFixed(3)+')';
 var ln=wrap(ctx,txt,b.w-52),lh=fs*1.45,y0=b.y-(ln.length-1)*lh/2;
 for(var k=0;k<ln.length;k++)ctx.fillText(ln[k],b.x,y0+k*lh);}
 ctx.restore();}
  
+
 function frame(ts){requestAnimationFrame(frame);if(ts-last<33)return;
 var dt=Math.min(0.06,(ts-last)/1000);last=ts;t+=dt*0.675;
-solved+=(target-solved)*0.08;life+=((dead?0:1)-life)*0.045;
-uiA+=((dead||target>=MAXQ?0:uiT)-uiA)*0.16;
+solved+=(Q.target-solved)*0.08;life+=((Q.dead?0:1)-life)*0.045;
+uiA+=((Q.dead||Q.target>=MAXQ?0:Q.uiT)-uiA)*0.16;
 DS=DS0+(DS1-DS0)*(solved/MAXQ);
-if(target>=MAXQ&&!dead)phase+=dt*SPD;else phase=Math.max(0,phase-dt*2.5);
+if(Q.target>=MAXQ&&!Q.dead)phase+=dt*SPD;else phase=Math.max(0,phase-dt*2.5);
 var P=phase,T1=MERGE,T2=T1+HOLD,T3=T2+THIN,T4=T3+WAIT,T5=T4+MOVE,T6=T5+OPENW,TR=T6+PAUSE,T7=TR+RUSH;
 var grow=ss(0,T1,P),thin=ss(T2,T3,P);
 var sA=ss(T2-HOLD*0.2,T2+THIN*0.65,P);
@@ -368,9 +251,9 @@ if(FL>0.001){ctx.save();ctx.globalCompositeOperation='source-over';
 ctx.fillStyle='rgba(255,255,255,'+Math.min(1,Math.pow(FL,0.75)).toFixed(3)+')';
 ctx.fillRect(0,0,W,H);ctx.restore();}
 }
-build();requestAnimationFrame(frame);
-})();
-</script>
-</body>
-</html>
- 
+
+/* ═════════════════ 외부 인터페이스 ═════════════════ */
+export var canvas=c;
+export var VW=W,VH=H;
+export function resetAnim(){life=1;phase=0;}
+export function start(){requestAnimationFrame(frame);}
