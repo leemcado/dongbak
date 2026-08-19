@@ -12,8 +12,8 @@ export var MAXQ=7;
 var COLL=166,COLR=794;
 export function LAY(q){var B=[],t=q.t;
 function box(x,y,w,h,r,role,i){B.push({x:x,y:y,w:w,h:h,r:r,role:role,i:i});}
-if(t==='주관식'){box(480,138,700,124,32,'q');box(480,348,520,86,26,'input');}
-else if(t==='주관식삽화'){box(480,80,660,84,26,'q');box(480,292,380,250,30,'illust');box(480,472,520,66,24,'input');}
+if(t==='주관식'){box(480,138,700,124,32,'q');}
+else if(t==='주관식삽화'){box(480,80,660,84,26,'q');box(480,292,380,250,30,'illust');}
 else if(t==='4지선다삽화'){box(480,70,660,76,24,'q');box(480,292,360,254,28,'illust');
 box(COLL,248,300,84,26,'o',0);box(COLR,248,300,84,26,'o',1);
 box(COLL,352,300,84,26,'o',2);box(COLR,352,300,84,26,'o',3);}
@@ -34,7 +34,6 @@ export var Q={target:0,dead:0,cur:null,BOX:[],uiT:1,typed:'',pick:-1};
 export var hooks={onRestart:null,onState:null};
 
 var BANK=[],PLAN=[],QUIZ=[],lastAct=null;
-var dev=null;
 
 export async function loadBank(url){
 var r=await fetch(url||'data/questions.json',{cache:'no-store'});
@@ -42,9 +41,7 @@ if(!r.ok)throw new Error('questions.json '+r.status);
 var d=await r.json();BANK=d.BANK;PLAN=d.PLAN;return d;}
 
 function rnd(a){return a[(Math.random()*a.length)|0];}
-function say(){if(!dev)dev=document.getElementById('dev');if(!dev)return;
-dev.textContent=Q.dead?'실패':(Q.cur?(Q.target+1)+' / '+MAXQ+'  '+Q.cur.c+'  '+Q.cur.l+'  '+Q.cur.t:'문 개방');}
-function tell(){say();if(hooks.onState)hooks.onState(snapshot());}
+function tell(){if(hooks.onState)hooks.onState(snapshot());}
 
 /* 7문항 추출 규칙: (범주, 난이도) 칸마다 하나씩 랜덤 */
 export function build(){QUIZ=[];for(var i=0;i<PLAN.length;i++){

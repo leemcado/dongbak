@@ -8,13 +8,10 @@
   html,body{margin:0;height:100%;background:#000;overflow:hidden}
   #stage{position:fixed;inset:0;display:grid;place-items:center;background:#000}
   canvas{display:block;width:min(100vw,177.7778vh);height:min(56.25vw,100vh);cursor:pointer}
-  #dev{position:fixed;left:12px;bottom:10px;font:11px/1.5 ui-monospace,monospace;
-       color:rgba(255,255,255,.28);pointer-events:none;letter-spacing:.06em}
 </style>
 </head>
 <body>
 <div id="stage"><canvas id="rC"></canvas></div>
-<div id="dev"></div>
 <svg id="rSvg" width="0" height="0" style="position:absolute;opacity:0;pointer-events:none"></svg>
 <script type="module">
 import * as quiz from './js/quiz.js';
