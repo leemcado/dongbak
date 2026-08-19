@@ -6,23 +6,37 @@
 var NAME='kucc-quiz';
 
 /* open('main',  {on:function(cmd){}, state:function(){return snapshot;}})
-   open('admin', {on:function(state){}})
-   cmd : 'ok' | 'ng' | 'undo' | 'restart'                                   */
+   open('admin', {on:function(state){}, onConflict:function(){}})
+   cmd : 'ok' | 'ng' | 'undo' | 'restart' | 'lang'                          */
 export function open(role,opt){
-var on=opt&&opt.on,getState=opt&&opt.state;
+opt=opt||{};
+var on=opt.on,getState=opt.state,onConflict=opt.onConflict;
 if(typeof BroadcastChannel!=='function')return{post:function(){},alive:false};
 var ch=new BroadcastChannel(NAME);
-function post(v){ch.postMessage(role==='main'?{type:'state',state:v}:{type:'cmd',cmd:v});}
-ch.onmessage=function(e){var m=e.data;if(!m)return;
+
+/* 메인마다 다른 표식. 관리자는 처음 들은 메인 하나에만 붙는다. */
+var MYID=role==='main'?(Date.now().toString(36)+Math.random().toString(36).slice(2,8)):null;
+function post(v){ch.postMessage(role==='main'?{type:'state',state:v,id:MYID}:{type:'cmd',cmd:v});}
+
 if(role==='main'){
+ch.onmessage=function(e){var m=e.data;if(!m)return;
 if(m.type==='hello'){if(getState)post(getState());}   /* 관리자가 새로 열렸다 — 현재 상태를 다시 알린다 */
-else if(m.type==='cmd'&&on)on(m.cmd);}
-else if(m.type==='state'&&on)on(m.state);};
+else if(m.type==='cmd'&&on)on(m.cmd);};
+return{post:post,alive:true,id:MYID};}
+
+/* ── 관리자 ── */
+var got=0,n=0,lock=null,warned=0;
+ch.onmessage=function(e){var m=e.data;
+if(!m||m.type!=='state')return;
+if(lock===null)lock=m.id;
+if(m.id!==lock){                    /* 메인 창이 둘 이상 떠 있다 */
+if(!warned&&onConflict){warned=1;onConflict();}
+return;}
+got=1;if(on)on(m.state);};
+
 /* 관리자가 메인보다 먼저 열리면 hello 를 들을 상대가 없다.
    상태가 한 번 올 때까지 되풀이해 부른다. */
-if(role==='admin'){var got=0,n=0;
-var inner=on;on=function(v){got=1;if(inner)inner(v);};
-ch.onmessage=function(e){var m=e.data;if(m&&m.type==='state'&&on)on(m.state);};
-var ping=function(){if(got||n++>600)return;
-ch.postMessage({type:'hello'});setTimeout(ping,1000);};ping();}
+(function ping(){if(got||n++>600)return;
+ch.postMessage({type:'hello'});setTimeout(ping,1000);})();
+
 return{post:post,alive:true};}

@@ -67,13 +67,18 @@ if(hooks.onRestart)hooks.onRestart();build();}
 /* 한국어 ↔ 영어. 번역은 문항 데이터의 qe/oe/ae 에 미리 넣어 두었다. */
 export function toggleLang(){Q.lang=Q.lang==='en'?'ko':'en';tell();}
 
+/* 전부 맞혀 문이 열리기 시작하면 더는 되돌릴 수 없다.
+   되돌리면 연출이 거꾸로 감기며 관리자 화면도 종료화면에서 문항으로 튄다. */
+function done(){return Q.target>=MAXQ&&!Q.dead;}
+
 /* 직전 판정 하나만 되돌린다. 관리자 창에서만 호출한다. */
-export function undo(){if(lastAct==='ng'){Q.dead=0;Q.uiT=1;lastAct=null;load(Q.target);return;}
+export function undo(){if(done())return;
+if(lastAct==='ng'){Q.dead=0;Q.uiT=1;lastAct=null;load(Q.target);return;}
 if(lastAct==='ok'&&Q.target>0){Q.target--;Q.uiT=1;lastAct=null;load(Q.target);}}
 
 /* 관리자 창에 보낼 상태. 메인이 소유하고 방송한다. */
 export function snapshot(){return{i:Q.target,total:MAXQ,dead:Q.dead,lang:Q.lang,
-cur:Q.cur,nxt:Q.target+1<MAXQ?QUIZ[Q.target+1]:null,undoable:lastAct!==null};}
+cur:Q.cur,nxt:Q.target+1<MAXQ?QUIZ[Q.target+1]:null,undoable:lastAct!==null&&!done()};}
 
 /* ═════════════════ 메인 창 입력 ═════════════════ */
 export function bindMainInput(c,toDesign){

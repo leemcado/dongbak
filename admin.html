@@ -26,9 +26,12 @@
   #keys{position:fixed;right:0;bottom:0;left:0;background:#000;color:#fff;
     font-size:19px;padding:9px 36px;letter-spacing:.02em}
   #link{font-size:16px;color:#666;margin-top:8px}
+  #warn:not(:empty){display:block;background:#000;color:#fff;font-size:19px;
+    font-weight:700;padding:8px 14px;margin:0 0 14px}
 </style>
 </head>
 <body>
+<div id="warn"></div>
 <div id="prog">—</div>
 <div id="lang"></div>
 <div id="meta"></div>
@@ -46,7 +49,9 @@ import {open} from './js/sync.js';
 var $=function(id){return document.getElementById(id);};
 var st=null;
 
-var ch=open('admin',{on:function(s){st=s;render(s);}});
+var ch=open('admin',{on:function(s){st=s;render(s);},
+onConflict:function(){$('warn').textContent=
+'⚠ 메인 창이 두 개 이상 열려 있습니다. 하나만 남기고 닫은 뒤 이 창을 새로고침하세요.';}});
 if(!ch.alive)$('q').textContent='이 브라우저는 BroadcastChannel 을 지원하지 않습니다.';
 
 function render(s){
