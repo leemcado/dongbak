@@ -8,6 +8,7 @@ var W=960,H=540,MIR=960,PVX=480,PVY=H*0.8,GAPF=8.48,DS0=0.5,DS1=1.0;
 var MERGE=4.7,HOLD=0.8,THIN=2.1,WAIT=0.9,MOVE=3.6,OPENW=0.5,LWF=2.6;
 var DMIN=0.16,WEXP=1.4,PAUSE=0.9,UA=0.45,RUSH=4.6;
 var SPD=1.8,GLOW=2.5,FLARE=0.29,BLURK=0.55,BEAD=0.45,LWSTART=0.95;
+var SKIPS=0.55;   /* 중도 포기 시 건너뛴 문항 하나당 다가가는 시간(초) */
 var DT={sx:1.075,ox:114.5,sy:1.075,oy:48.7},OCY=134;
 var LEAF_SOLID=["M236 246 Q267.2 138.2 340 92 L340 418 L236 418 Z",
 "M246 246 L246 198 Q258.6 148 288 130 Q317.4 148 330 198 L330 246 Z"];
@@ -103,6 +104,7 @@ function ss(a,b,x){var t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);
 
 /* ═════════════════ 애니메이션 상태 ═════════════════ */
 var solved=0,life=1,phase=0,t=0,last=0,DS=DS0,ZM=1;
+var skipFrom=-1,skipT=0,skipDur=0;   /* 중도 포기 활강 */
 var uiA=0;
 
 /* 격자 — 화면 중앙을 원점으로 하는 고정 필터 */
@@ -284,7 +286,16 @@ ctx.restore();}
 
 function frame(ts){requestAnimationFrame(frame);if(ts-last<33)return;
 var dt=Math.min(0.06,(ts-last)/1000);last=ts;t+=dt*0.675;
-solved+=(Q.target-solved)*0.08;life+=((Q.dead?0:1)-life)*0.045;
+/* 평소엔 지수 감쇠로 한 칸씩 따라붙는다. 그런데 중도 포기로 여러 칸을
+   한꺼번에 뛰면 초기 속도가 남은 거리에 비례해 튀어나가듯 보인다.
+   그때만 거리에 비례한 시간을 잡고 스무스스텝으로 재서 등속에 가깝게,
+   양 끝에서 도함수가 0이 되도록 활강시킨다. */
+if(!Q.gave)skipFrom=-1;
+else if(skipFrom<0){skipFrom=solved;skipT=0;
+skipDur=Math.max(0.5,SKIPS*(MAXQ-skipFrom));}
+if(skipFrom>=0&&skipT<skipDur){skipT+=dt;
+solved=skipFrom+(MAXQ-skipFrom)*ss(0,skipDur,skipT);}
+else solved+=(Q.target-solved)*0.08;life+=((Q.dead?0:1)-life)*0.045;
 uiA+=((Q.dead||Q.target>=MAXQ?0:Q.uiT)-uiA)*0.16;
 DS=DS0+(DS1-DS0)*(solved/MAXQ);
 /* 문 개방 타임라인은 '다가가기'가 끝난 뒤에 시작한다. 중도 포기로 target 이
