@@ -150,49 +150,48 @@ function sdBox(px,py,b){var qx=Math.abs(px-b.x)-(b.w/2-b.r),qy=Math.abs(py-b.y)-
 var ax=qx>0?qx:0,ay=qy>0?qy:0;
 return Math.min(Math.max(qx,qy),0)+Math.sqrt(ax*ax+ay*ay)-b.r;}
 /* ── 선지·삽화 이미지 ──
-   이미지도 필터 뒤에 놓인 객체다. 픽셀을 그대로 칠하지 않고 잉크 농도를
-   점 반지름과 알파에 더한다. 박스 감쇠로 파인 자리에 점이 다시 돋는 셈. */
+   삽화만은 필터 문법에서 뺀다. 점으로 옮기면 그림 속 정보가 읽히지 않기 때문.
+   대신 흰 바탕을 걷어내고 가장자리를 흐려, 검은 화면에 스미듯 얹는다.
+   격자·문·박스는 여전히 필터 문법을 그대로 따른다.                        */
 var FONT='"HeirofLight",-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif';
-var IRES=2,IMGAMP=GAPF*0.58,IMGA=0.9,IPAD=10,ILAB=24;
+var IPAD=10,ILAB=24,IMGDIM=0.94,IMAX=560;
 var IMGC={};
 function imgField(src){var e=IMGC[src];if(e)return e;
-e=IMGC[src]={ready:0,w:0,h:0,ink:null,ar:1};
+e=IMGC[src]={ready:0,cv:null,ar:1};
 var im=new Image();
-im.onload=function(){var w=Math.max(1,Math.round(im.width/IRES)),h=Math.max(1,Math.round(im.height/IRES));
+im.onload=function(){
+var w=im.width,h=im.height,k=Math.min(1,IMAX/Math.max(w,h));
+w=Math.max(1,Math.round(w*k));h=Math.max(1,Math.round(h*k));
 var o=document.createElement('canvas');o.width=w;o.height=h;
 var g=o.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0,w,h);
-var d=g.getImageData(0,0,w,h).data,N=w*h,ink=new Float32Array(N),tr=0;
-for(var i=0;i<N;i++)if(d[i*4+3]<250)tr++;
-var opaque=tr/N<=0.02,cl=0;
-if(opaque){var cs=[0,w-1,(h-1)*w,(h-1)*w+w-1];
-for(var k=0;k<4;k++){var j=cs[k]*4;cl+=(d[j]*0.299+d[j+1]*0.587+d[j+2]*0.114)/255;}cl/=4;}
-var inv=opaque&&cl>0.72;   /* 흰 바탕 그림은 어두운 쪽이 잉크 */
-for(var i=0;i<N;i++){var a=d[i*4+3]/255,
-L=(d[i*4]*0.299+d[i*4+1]*0.587+d[i*4+2]*0.114)/255;
-var v=opaque?(inv?1-L:L):a;
-ink[i]=ss(0.20,0.74,v);}   /* 대비를 세워야 점으로 옮겼을 때 형태가 남는다 */
-/* 잉크의 경계상자만 남긴다 — 여백을 버려야 같은 칸에 더 크게 들어간다 */
-var x0=w,y0=h,x1=-1,y1=-1;
-for(var j=0;j<h;j++)for(var i=0;i<w;i++)if(ink[j*w+i]>0.12){
-if(i<x0)x0=i;if(i>x1)x1=i;if(j<y0)y0=j;if(j>y1)y1=j;}
-if(x1<x0){x0=0;y0=0;x1=w-1;y1=h-1;}
-e.w=w;e.h=h;e.ink=ink;
-e.bx=x0;e.by=y0;e.bw=x1-x0+1;e.bh=y1-y0+1;e.ar=e.bw/e.bh;e.ready=1;};
+var d=g.getImageData(0,0,w,h),p=d.data,N=w*h;
+/* 흰 바탕 걷어내기 — 검은 화면에 흰 사각형이 뜨지 않도록.
+   채도가 있는 밝은 색(노란 로고 등)은 남긴다. */
+for(var i=0;i<N;i++){var j=i*4,
+r=p[j]/255,gg2=p[j+1]/255,b2=p[j+2]/255,
+L=r*0.299+gg2*0.587+b2*0.114,
+mx=Math.max(r,Math.max(gg2,b2)),mn=Math.min(r,Math.min(gg2,b2)),
+sat=mx>0?(mx-mn)/mx:0;
+p[j+3]*=1-ss(0.82,0.995,L)*(1-ss(0.08,0.26,sat));}
+/* 가장자리 페더 — 액자 테두리 티를 없앤다 */
+var fx=Math.max(5,w*0.055),fy=Math.max(5,h*0.055);
+for(var y=0;y<h;y++)for(var x=0;x<w;x++){
+var t=Math.min(Math.min(x,w-1-x)/fx,Math.min(y,h-1-y)/fy);
+if(t<1)p[(y*w+x)*4+3]*=ss(0,1,t);}
+g.putImageData(d,0,0);
+e.cv=o;e.ar=w/h;e.ready=1;};
 im.src=src;return e;}
-/* 박스 안에 '맞춤(contain)'으로 앉힌 이미지의 잉크값 */
-function inkOf(px,py,b,e){var lab=(b.role==='o')?ILAB:0;
+/* 박스 안에 맞춤(contain)으로 앉힌 자리. 선지 박스는 아래 라벨 자리를 비워 둔다. */
+function fitImg(b,e){var lab=(b.role==='o')?ILAB:0;
 var mw=b.w-IPAD*2,mh=b.h-IPAD*2-lab;
 var w0=Math.min(mw,mh*e.ar),h0=w0/e.ar;
-var cx=b.x,cy=b.y-lab/2;
-var u=(px-(cx-w0/2))/w0,v=(py-(cy-h0/2))/h0;
-if(u<0||v<0||u>=1||v>=1)return 0;
-return e.ink[(e.by+((v*e.bh)|0))*e.w+e.bx+((u*e.bw)|0)];}
-function boxInk(px,py){if(uiA<0.01)return 0;
+return{x:b.x-w0/2,y:b.y-lab/2-h0/2,w:w0,h:h0};}
+function drawImages(){if(uiA<0.02||!Q.cur)return;
 for(var i=0;i<Q.BOX.length;i++){var b=Q.BOX[i];if(!b.img)continue;
-if(px<b.x-b.w/2||px>b.x+b.w/2||py<b.y-b.h/2||py>b.y+b.h/2)continue;
 var e=IMGC[b.img];if(!e||!e.ready)continue;
-return inkOf(px,py,b,e);}
-return 0;}
+var f=fitImg(b,e),dim=(b.role==='o'&&Q.pick>=0&&Q.pick!==b.i)?0.38:1;
+ctx.save();ctx.globalAlpha=Math.min(1,uiA*IMGDIM*dim);
+ctx.drawImage(e.cv,f.x,f.y,f.w,f.h);ctx.restore();}}
 function boxCut(px,py){if(uiA<0.01)return 0;var mx=0;
 for(var i=0;i<Q.BOX.length;i++){var b=Q.BOX[i];
 if(px<b.x-b.w/2-2||px>b.x+b.w/2+2||py<b.y-b.h/2-2||py>b.y+b.h/2+2)continue;
@@ -205,9 +204,10 @@ if(cu)ln.push(cu);return ln;}
 function drawText(){if(uiA<0.02||!Q.cur)return;
 ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
 for(var i=0;i<Q.BOX.length;i++){var b=Q.BOX[i],txt=null,fs=18,wt='500';
-if(b.role==='q'){txt=Q.cur.q;wt='700';
-fs=txt.length>150?20:txt.length>90?22:25;}
-else if(b.role==='o'){txt=Q.cur.o[b.i];fs=b.img?17:19;}
+var EN=Q.lang==='en';
+if(b.role==='q'){txt=(EN&&Q.cur.qe)?Q.cur.qe:Q.cur.q;wt='700';
+fs=txt.length>210?18:txt.length>150?20:txt.length>90?22:25;}
+else if(b.role==='o'){var OO=(EN&&Q.cur.oe)?Q.cur.oe:Q.cur.o;txt=OO[b.i];fs=b.img?17:19;}
 else if(b.role==='illust'){if(b.img)continue;txt='삽화';fs=15;}
 if(txt===null||txt==='')continue;
 ctx.font=wt+' '+fs+'px '+FONT;
@@ -259,10 +259,9 @@ if(rx>=479){var dr=smp(fRO,rx,qy);if(!inM(MKO,rx,qy))dr=Math.min(dr,smp(fRB,rx,q
 d=Math.min(d,smp(fG,sx,sy)/rel)*DS*ZM;
 var f=Math.min(1,Math.exp(-(d*d)/sig2)+Math.exp(-(d*d)/1400)*halo);
 var n=nAt(x,y),k=j*cols+i;
-var ik=boxInk(x,y);
-var r=base+n*n*nAmp+f*dAmp-boxCut(x,y)+ik*IMGAMP*uiA;
+var r=base+n*n*nAmp+f*dAmp-boxCut(x,y);
 R[k]=r>0?r:0;
-A[k]=Math.min(1,(0.10+n*0.62)*bg+f*0.55*dOn+ik*IMGA*uiA);}}
+A[k]=Math.min(1,(0.10+n*0.62)*bg+f*0.55*dOn);}}
 ctx.lineCap='round';
 if(grow>0.03&&sA<0.99){
 for(var j=0;j<rows;j++)for(var i=0;i<cols;i++){var k=j*cols+i;if(R[k]<GAPF*0.2)continue;
@@ -295,6 +294,7 @@ if(FACE>0.002){LYR.g.clearRect(0,0,W,H);lit(LYR.g,faceOrn,FACE);occlude(LYR.g,fa
 obj(strokeOrn,[faceLogo]);
 lit(ctx,faceLogo,FACE);
 obj(strokeLogo,[]);}
+drawImages();
 drawText();
 if(FL>0.001){ctx.save();ctx.globalCompositeOperation='source-over';
 ctx.fillStyle='rgba(255,255,255,'+Math.min(1,Math.pow(FL,0.75)).toFixed(3)+')';

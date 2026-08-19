@@ -11,6 +11,8 @@
   body{padding:28px 36px 60px;max-width:1100px}
   #prog{font-size:34px;font-weight:700}
   #meta{font-size:22px;margin-top:2px}
+  #lang{position:fixed;right:36px;top:24px;font-size:20px;font-weight:700;
+    border:3px solid #000;padding:3px 14px}
   #q{font-size:40px;font-weight:700;line-height:1.35;margin:22px 0 18px}
   ol{font-size:28px;margin:0;padding-left:1.6em}
   li{margin:6px 0}
@@ -28,6 +30,7 @@
 </head>
 <body>
 <div id="prog">—</div>
+<div id="lang"></div>
 <div id="meta"></div>
 <div id="q">메인 창을 열어 주세요.</div>
 <ol id="o"></ol>
@@ -36,7 +39,7 @@
 <hr>
 <h2>다음 문제</h2><div id="nxt"></div>
 <div id="link"></div>
-<div id="keys">스페이스 정답 · Esc 오답 · Backspace 직전 판정 취소 · R 처음부터</div>
+<div id="keys">스페이스 정답 · Esc 오답 · Backspace 직전 판정 취소 · R 처음부터 · E 한/영 전환</div>
 <script type="module">
 import {open} from './js/sync.js';
 
@@ -48,26 +51,36 @@ if(!ch.alive)$('q').textContent='이 브라우저는 BroadcastChannel 을 지원
 
 function render(s){
 if(!s){$('prog').textContent='—';return;}
-var c=s.cur;
+var c=s.cur,EN=s.lang==='en';
+/* 메인 화면이 보여주는 언어와 같은 문면을 띄운다. 해설은 TF 용이라 항상 한국어. */
+var Q=function(q){return EN&&q.qe?q.qe:q.q;};
+var O=function(q){return(EN&&q.oe?q.oe:q.o)||[];};
+var A=function(q){return EN&&q.ae?q.ae:q.a;};
+$('lang').textContent=EN?'ENGLISH':'한국어';
 $('prog').textContent=c?(s.i+1)+' / '+s.total:(s.dead?'실패':'문 개방');
 $('meta').textContent=c?(c.c+'  ·  '+c.l+'  ·  '+c.t):'';
-$('q').textContent=c?c.q:(s.dead?'오답으로 종료되었습니다. R 로 다시 시작하세요.':'7문제를 모두 맞혔습니다.');
+$('q').textContent=c?Q(c):(s.dead?'오답으로 종료되었습니다. R 로 다시 시작하세요.':'7문제를 모두 맞혔습니다.');
 var ol=$('o');ol.innerHTML='';
-if(c&&c.o&&c.o.length){for(var i=0;i<c.o.length;i++){
+var oo=c?O(c):[];
+for(var i=0;i<oo.length;i++){
 var li=document.createElement('li'),sp=document.createElement('span');
-sp.textContent=c.o[i];li.appendChild(sp);
-if(i===c.a)li.className='ok';ol.appendChild(li);}}
-$('ans').textContent=c?('정답 — '+(c.o&&c.o.length?(c.a+1)+'번  '+c.o[c.a]:[].concat(c.a).join('  /  '))):'';
+sp.textContent=oo[i];li.appendChild(sp);
+if(i===c.a)li.className='ok';ol.appendChild(li);}
+$('ans').textContent=c?('정답 — '+(oo.length?(c.a+1)+'번  '+oo[c.a]:[].concat(A(c)).join('  /  '))):'';
 $('x').textContent=c?(c.x||''):'';
-$('nxt').textContent=s.nxt?(s.nxt.c+' · '+s.nxt.l+' · '+s.nxt.t+'  —  '+s.nxt.q):'— 마지막 문제입니다';
+$('nxt').textContent=s.nxt?(s.nxt.c+' · '+s.nxt.l+' · '+s.nxt.t+'  —  '+Q(s.nxt)):'— 마지막 문제입니다';
 $('link').textContent=s.undoable?'':'되돌릴 판정이 없습니다.';}
 
 /* 채점 키는 관리자 창에서만 받는다. 메인 창의 주관식 입력과 충돌하지 않도록. */
+/* e.key 로 글자 키를 보면 한글 입력 상태에서 'r' 이 'ㄱ' 으로 들어와 먹히지 않는다.
+   자판 배열과 무관한 e.code 로 받는다. */
 window.addEventListener('keydown',function(e){
-if(e.code==='Space'||e.key===' '){e.preventDefault();ch.post('ok');}
-else if(e.key==='Escape'){e.preventDefault();ch.post('ng');}
-else if(e.key==='Backspace'){e.preventDefault();ch.post('undo');}
-else if(e.key==='r'||e.key==='R'){e.preventDefault();ch.post('restart');}},{passive:false});
+var c=e.code;
+if(c==='Space'){e.preventDefault();ch.post('ok');}
+else if(c==='Escape'){e.preventDefault();ch.post('ng');}
+else if(c==='Backspace'){e.preventDefault();ch.post('undo');}
+else if(c==='KeyR'){e.preventDefault();ch.post('restart');}
+else if(c==='KeyE'){e.preventDefault();ch.post('lang');}},{passive:false});
 </script>
 </body>
 </html>

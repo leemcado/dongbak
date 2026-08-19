@@ -28,7 +28,7 @@ return B;}
 
 /* ═════════════════ 진행 상태 ═════════════════
    door.js 가 매 프레임 읽는 값. 필드 이름은 원본의 전역 변수명 그대로다. */
-export var Q={target:0,dead:0,cur:null,BOX:[],uiT:1,pick:-1};
+export var Q={target:0,dead:0,cur:null,BOX:[],uiT:1,pick:-1,lang:'ko'};
 
 /* 렌더러·동기화가 걸어 두는 훅. 순환 임포트를 피하려고 콜백으로 둔다. */
 export var hooks={onRestart:null,onState:null};
@@ -62,12 +62,15 @@ Q.pick=k;if(k===Q.cur.a)next();else fail();}
 export function restart(){Q.target=0;Q.dead=0;Q.uiT=1;lastAct=null;
 if(hooks.onRestart)hooks.onRestart();build();}
 
+/* 한국어 ↔ 영어. 번역은 문항 데이터의 qe/oe/ae 에 미리 넣어 두었다. */
+export function toggleLang(){Q.lang=Q.lang==='en'?'ko':'en';tell();}
+
 /* 직전 판정 하나만 되돌린다. 관리자 창에서만 호출한다. */
 export function undo(){if(lastAct==='ng'){Q.dead=0;Q.uiT=1;lastAct=null;load(Q.target);return;}
 if(lastAct==='ok'&&Q.target>0){Q.target--;Q.uiT=1;lastAct=null;load(Q.target);}}
 
 /* 관리자 창에 보낼 상태. 메인이 소유하고 방송한다. */
-export function snapshot(){return{i:Q.target,total:MAXQ,dead:Q.dead,
+export function snapshot(){return{i:Q.target,total:MAXQ,dead:Q.dead,lang:Q.lang,
 cur:Q.cur,nxt:Q.target+1<MAXQ?QUIZ[Q.target+1]:null,undoable:lastAct!==null};}
 
 /* ═════════════════ 메인 창 입력 ═════════════════ */
