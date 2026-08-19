@@ -1,5 +1,5 @@
 {
- "PLAN": [["club", "쉬움"], ["club", "보통"], ["club", "어려움"], ["history", "쉬움"], ["history", "보통"], ["history", "어려움"], ["brain", "어려움"]],
+ "PLAN": [["club", "쉬움"], ["history", "쉬움"], ["club", "보통"], ["history", "보통"], ["club", "어려움"], ["history", "어려움"], ["brain", "어려움"]],
  "BANK": [
   {"t": "선지사진", "c": "club", "l": "쉬움", "q": "다음 중 KUCC의 마스코트는 무엇인가?", "o": ["빨간 고양이", "파란 고양이", "파란 독수리", "빨간 독수리"], "img": ["assets/club/mascot-red-cat.png", "assets/club/mascot-blue-cat.png", "assets/club/mascot-blue-eagle.png", "assets/club/mascot-red-eagle.png"], "a": 0, "x": "말풍선 위에 고양이 얼굴을 얹은 빨간 도안이 KUCC의 실제 로고입니다. 나머지는 색을 바꾸거나 독수리로 교체한 미끼입니다.", "qe": "Which one is KUCC's mascot?", "oe": ["Red cat", "Blue cat", "Blue eagle", "Red eagle"], "labels": false, "imgmode": "keyout"},
   {"t": "4지선다", "c": "club", "l": "쉬움", "q": "KUCC가 지향하는 목표는 무엇인가?", "o": ["Code, Communicate, Challenge", "Code, Computer, Challenge", "Code, Creative, Compete", "Cat, Cooperate, Coffee"], "a": 0, "x": "Code, Communicate, Challenge 입니다. 코드를 쓰고(Code), 서로 나누고(Communicate), 새로운 것에 도전한다(Challenge)는 세 가지를 KUCC 가 지향합니다.", "qe": "What does KUCC aim for?", "oe": ["Code, Communicate, Challenge", "Code, Computer, Challenge", "Code, Creative, Compete", "Cat, Cooperate, Coffee"]},
