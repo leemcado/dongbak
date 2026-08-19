@@ -43,7 +43,7 @@
 <hr>
 <h2>다음 문제</h2><div id="nxt"></div>
 <div id="link"></div>
-<div id="keys">스페이스 정답 · Esc 오답 · Backspace 직전 판정 취소 · R 처음부터 · E 한/영 전환</div>
+<div id="keys">스페이스 정답 · Esc 오답 · Backspace 직전 판정 취소 · P 중도 포기 · R 처음부터 · E 한/영 전환</div>
 <script type="module">
 import {open} from './js/sync.js';
 
@@ -65,7 +65,8 @@ var A=function(q){return EN&&q.ae?q.ae:q.a;};
 $('lang').textContent=EN?'ENGLISH':'한국어';
 $('prog').textContent=c?(s.i+1)+' / '+s.total:(s.dead?'실패':'문 개방');
 $('meta').textContent=c?(c.c+'  ·  '+c.l+'  ·  '+c.t):'';
-$('q').textContent=c?Q(c):(s.dead?'오답으로 종료되었습니다. R 로 다시 시작하세요.':'7문제를 모두 맞혔습니다.');
+$('q').textContent=c?Q(c):(s.dead?'오답으로 종료되었습니다. R 로 다시 시작하세요.':
+  (s.gave?'중도 포기 — 남은 문항을 건너뛰고 문이 열립니다. 끝나면 R 로 다시 시작하세요.':'7문제를 모두 맞혔습니다.'));
 var ol=$('o');ol.innerHTML='';
 var oo=c?O(c):[];
 for(var i=0;i<oo.length;i++){
@@ -86,7 +87,8 @@ if(c==='Space'){e.preventDefault();ch.post('ok');}
 else if(c==='Escape'){e.preventDefault();ch.post('ng');}
 else if(c==='Backspace'){e.preventDefault();ch.post('undo');}
 else if(c==='KeyR'){e.preventDefault();ch.post('restart');}
-else if(c==='KeyE'){e.preventDefault();ch.post('lang');}},{passive:false});
+else if(c==='KeyE'){e.preventDefault();ch.post('lang');}
+else if(c==='KeyP'){e.preventDefault();ch.post('giveup');}},{passive:false});
 </script>
 </body>
 </html>

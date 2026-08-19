@@ -287,7 +287,9 @@ var dt=Math.min(0.06,(ts-last)/1000);last=ts;t+=dt*0.675;
 solved+=(Q.target-solved)*0.08;life+=((Q.dead?0:1)-life)*0.045;
 uiA+=((Q.dead||Q.target>=MAXQ?0:Q.uiT)-uiA)*0.16;
 DS=DS0+(DS1-DS0)*(solved/MAXQ);
-if(Q.target>=MAXQ&&!Q.dead)phase+=dt*SPD;else phase=Math.max(0,phase-dt*2.5);
+/* 문 개방 타임라인은 '다가가기'가 끝난 뒤에 시작한다. 중도 포기로 target 이
+   한꺼번에 뛰어도 solved 가 따라붙는 동안은 확대만 보이고, 다 붙은 다음 결합이 시작된다. */
+if(Q.target>=MAXQ&&!Q.dead&&solved>MAXQ-0.05)phase+=dt*SPD;else phase=Math.max(0,phase-dt*2.5);
 var P=phase,T1=MERGE,T2=T1+HOLD,T3=T2+THIN,T4=T3+WAIT,T5=T4+MOVE,T6=T5+OPENW,TR=T6+PAUSE,T7=TR+RUSH;
 var grow=ss(0,T1,P),thin=ss(T2,T3,P);
 var sA=ss(T2-HOLD*0.2,T2+THIN*0.65,P);
@@ -362,7 +364,7 @@ ctx.fillStyle='rgba(255,255,255,'+Math.min(1,Math.pow(FL,0.75)).toFixed(3)+')';
 ctx.fillRect(-OX,-OY,EW,EH);
 /* 섬광이 화면을 다 덮은 뒤 그 한가운데. 후광 없이 검은 글씨만 얹는다. */
 var ca=ss(0.66,1,FL);
-if(ca>0.002){ctx.textAlign='center';ctx.textBaseline='middle';
+if(ca>0.002&&!Q.gave){ctx.textAlign='center';ctx.textBaseline='middle';
 ctx.font='700 '+CLEARFS+'px '+FONT;
 ctx.fillStyle='rgba(0,0,0,'+ca.toFixed(3)+')';
 ctx.fillText(CLEARTXT,W/2,H/2);}

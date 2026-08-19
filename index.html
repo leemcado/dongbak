@@ -34,6 +34,7 @@ if(cmd==='ok'){if(!quiz.Q.dead)quiz.next();}
 else if(cmd==='ng'){if(!quiz.Q.dead)quiz.fail();}
 else if(cmd==='undo')quiz.undo();
 else if(cmd==='lang')quiz.toggleLang();
+else if(cmd==='giveup')quiz.giveUp();
 else if(cmd==='restart')quiz.restart();}});
 quiz.hooks.onState=function(s){ch.post(s);};
 
