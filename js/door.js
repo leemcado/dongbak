@@ -34,9 +34,16 @@ var HINGE_L=TX(236),HINGE_R=TX(444),MULL=104*DT.sx,SPR=TY(246),APEXY=TY(92),BASE
 var ZX=480,ZY=LSRC,LGK0=0.117;
 var LG_START={x:480,y:TY(OCY),k:LGK0},LG_END={x:480,y:APEXY-58,k:LGK0};
 var c=document.getElementById('rC'),ctx=c.getContext('2d');
-var dpr=Math.min(1.5,window.devicePixelRatio||1);c.width=W*dpr;c.height=H*dpr;ctx.scale(dpr,dpr);
-function mk(s){var o=document.createElement('canvas');o.width=W*s;o.height=H*s;var g=o.getContext('2d');g.scale(s,s);return{c:o,g:g};}
-var GLW=mk(0.5),LIT=mk(0.5),LYR=mk(dpr),FILT=(typeof ctx.filter==='string');
+var dpr=Math.min(1.5,window.devicePixelRatio||1);
+/* ── 좌표계 두 겹 ──
+   설계 좌표계는 언제까지나 960×540 이다. 박스·문·마스코트는 전부 그 안에서만 논다.
+   화면이 16:9 가 아니면 남는 위아래(또는 좌우)만큼 설계 좌표계를 바깥으로 늘려
+   그 여백에도 격자·노이즈·문빛이 이어지게 한다. OX/OY 가 그 여백의 폭이다.
+   따라서 그릴 수 있는 설계 좌표 범위는 x∈[-OX, W+OX], y∈[-OY, H+OY].     */
+var SCL=1,OX=0,OY=0,EW=W,EH=H;   /* EW/EH = 늘어난 전체 폭·높이(설계 단위) */
+function mk(s){var o=document.createElement('canvas');o.width=Math.ceil(EW*s);o.height=Math.ceil(EH*s);
+var g=o.getContext('2d');g.setTransform(s,0,0,s,OX*s,OY*s);return{c:o,g:g,s:s};}
+var GLW=null,LIT=null,LYR=null,FILT=(typeof ctx.filter==='string');
 var svg=document.getElementById('rSvg'),NS='http://www.w3.org/2000/svg';
 function sample(ds,tr){var out=[];for(var i=0;i<ds.length;i++){var p=document.createElementNS(NS,'path');p.setAttribute('d',ds[i]);svg.appendChild(p);
 var L=p.getTotalLength(),n=Math.max(2,Math.ceil(L/1.7)),a=[];
@@ -81,8 +88,15 @@ function vn(x,y,z){var xi=Math.floor(x),yi=Math.floor(y),zi=Math.floor(z),xf=x-x
 var u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf),w=zf*zf*(3-2*zf);
 function lp(q){var a=hs(xi,yi,q),b=hs(xi+1,yi,q),cc=hs(xi,yi+1,q),d=hs(xi+1,yi+1,q);return a+(b-a)*u+(cc-a)*v+(a-b-cc+d)*u*v;}
 var p=lp(zi),r=lp(zi+1);return p+(r-p)*w;}
-var NW=96,NH=54,nf=new Float32Array(NW*NH);
-function nAt(x,y){var u=x/W*(NW-1),v=y/H*(NH-1),i=u|0,j=v|0,fu=u-i,fv=v-j;
+var NCELL=10,NW=96,NH=54,nf=new Float32Array(NW*NH);
+function noiseGrid(){NW=Math.ceil(EW/NCELL)+2;NH=Math.ceil(EH/NCELL)+2;
+nf=new Float32Array(NW*NH);}
+/* 설계 좌표 → 노이즈 격자. 여백 쪽도 같은 밀도로 이어진다. */
+function nAt(x,y){
+var u=(x+OX)/NCELL,v=(y+OY)/NCELL;
+if(u<0)u=0;else if(u>NW-1.001)u=NW-1.001;
+if(v<0)v=0;else if(v>NH-1.001)v=NH-1.001;
+var i=u|0,j=v|0,fu=u-i,fv=v-j;
 var a=nf[j*NW+i],b=nf[j*NW+i+1],cc=nf[(j+1)*NW+i],d=nf[(j+1)*NW+i+1];
 return a+(b-a)*fu+(cc-a)*fv+(a-b-cc+d)*fu*fv;}
 function ss(a,b,x){var t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t);}
@@ -93,10 +107,24 @@ var uiA=0;
 
 /* 격자 — 화면 중앙을 원점으로 하는 고정 필터 */
 var cols=0,rows=0,X=[],Y=[],R=null,A=null;
-(function(){var cx=W/2,cy=H/2,nl=Math.ceil(cx/GAPF),nt=Math.ceil(cy/GAPF);
-for(var x=cx-nl*GAPF;x<=W+GAPF*0.5;x+=GAPF)X.push(x);
-for(var y=cy-nt*GAPF;y<=H+GAPF*0.5;y+=GAPF)Y.push(y);
-cols=X.length;rows=Y.length;R=new Float32Array(cols*rows);A=new Float32Array(cols*rows);})();
+function grid(){var cx=W/2,cy=H/2;
+var nl=Math.ceil((cx+OX)/GAPF),nt=Math.ceil((cy+OY)/GAPF);
+X=[];Y=[];
+for(var x=cx-nl*GAPF;x<=W+OX+GAPF*0.5;x+=GAPF)X.push(x);
+for(var y=cy-nt*GAPF;y<=H+OY+GAPF*0.5;y+=GAPF)Y.push(y);
+cols=X.length;rows=Y.length;R=new Float32Array(cols*rows);A=new Float32Array(cols*rows);}
+
+/* 화면 크기가 바뀔 때마다 여백을 다시 재고 격자·노이즈·보조 캔버스를 새로 잡는다. */
+function layout(){
+var cw=Math.max(1,c.clientWidth||W),ch=Math.max(1,c.clientHeight||H);
+SCL=Math.min(cw/W,ch/H);
+EW=cw/SCL;EH=ch/SCL;
+OX=(EW-W)/2;OY=(EH-H)/2;
+c.width=Math.round(cw*dpr);c.height=Math.round(ch*dpr);
+ctx.setTransform(SCL*dpr,0,0,SCL*dpr,OX*SCL*dpr,OY*SCL*dpr);
+GLW=mk(0.5);LIT=mk(0.5);LYR=mk(dpr);
+grid();noiseGrid();}
+window.addEventListener('resize',layout);
  
 /* 화면 = 소실점 확대(걷기) ∘ 기준점 확대(정답 진행) */
 function dtf(g){g.translate(ZX,ZY);g.scale(ZM,ZM);g.translate(-ZX,-ZY);
@@ -108,8 +136,8 @@ for(var i=0;i<sp.length;i++){var p=sp[i];g.moveTo(p[0],p[1]);for(var k=6;k<p.len
 g.stroke();g.restore();}
 function bl(g,src,rad,al){if(al<=0.002)return;g.save();g.globalCompositeOperation='lighter';
 if(FILT)g.filter='blur('+rad.toFixed(1)+'px)';else{g.shadowColor='#fff';g.shadowBlur=rad;}
-g.globalAlpha=Math.min(1,al);g.drawImage(src,0,0,W,H);g.restore();}
-function paste(){ctx.save();ctx.globalCompositeOperation='lighter';ctx.drawImage(LYR.c,0,0,W,H);ctx.restore();}
+g.globalAlpha=Math.min(1,al);g.drawImage(src,-OX,-OY,EW,EH);g.restore();}
+function paste(){ctx.save();ctx.globalCompositeOperation='lighter';ctx.drawImage(LYR.c,-OX,-OY,EW,EH);ctx.restore();}
 var SC=1,LGX=0,LGY=0,LGK=0;
  
 /* ── 면(솔리드): 불투명 객체는 여기에만 등록한다 ── */
@@ -133,10 +161,10 @@ g.lineWidth=w/LGK/DS;g.strokeStyle='rgba(255,255,255,'+a.toFixed(3)+')';g.stroke
 var gg=0,sAA=0,lwA=0,bwA=0;
 /* 광원 단계에서 가린 뒤 블러 → 보이는 선의 빛만 면 위로 번진다 */
 function obj(strokeFn,cuts){
-if(gg>0.01){GLW.g.clearRect(0,0,W,H);strokeFn(GLW.g,bwA,1);
+if(gg>0.01){GLW.g.clearRect(-OX,-OY,EW,EH);strokeFn(GLW.g,bwA,1);
 for(var i=0;i<cuts.length;i++)occlude(GLW.g,cuts[i]);
 bl(ctx,GLW.c,(2.5+gg*5)*BLURK,0.30*gg);bl(ctx,GLW.c,(9+gg*16)*BLURK,0.40*gg);bl(ctx,GLW.c,(26+gg*44)*BLURK,0.28*gg);}
-if(sAA>0.01){LYR.g.clearRect(0,0,W,H);
+if(sAA>0.01){LYR.g.clearRect(-OX,-OY,EW,EH);
 LYR.g.save();LYR.g.globalCompositeOperation='lighter';strokeFn(LYR.g,lwA,sAA);LYR.g.restore();
 for(var i=0;i<cuts.length;i++)occlude(LYR.g,cuts[i]);paste();}}
 function apPath(g,sc){var lL=HINGE_L+MULL*sc,rL=HINGE_R-MULL*sc;if(rL-lL<1)return false;
@@ -165,14 +193,13 @@ w=Math.max(1,Math.round(w*k));h=Math.max(1,Math.round(h*k));
 var o=document.createElement('canvas');o.width=w;o.height=h;
 var g=o.getContext('2d',{willReadFrequently:true});g.drawImage(im,0,0,w,h);
 var d=g.getImageData(0,0,w,h),p=d.data,N=w*h;
-/* 흰 바탕 걷어내기 — 검은 화면에 흰 사각형이 뜨지 않도록.
-   채도가 있는 밝은 색(노란 로고 등)은 남긴다. */
+/* 명도만 뒤집는다 — HSL 의 L 을 1-L 로 보내되 H·S 는 그대로.
+   그 변환은 각 채널에 (1 - (max+min)) 를 더하는 것과 정확히 같다.
+   흰 바탕은 검게, 검은 선은 희게 가면서 빨간 로고는 빨간 채로 남는다. */
 for(var i=0;i<N;i++){var j=i*4,
-r=p[j]/255,gg2=p[j+1]/255,b2=p[j+2]/255,
-L=r*0.299+gg2*0.587+b2*0.114,
-mx=Math.max(r,Math.max(gg2,b2)),mn=Math.min(r,Math.min(gg2,b2)),
-sat=mx>0?(mx-mn)/mx:0;
-p[j+3]*=1-ss(0.82,0.995,L)*(1-ss(0.08,0.26,sat));}
+r=p[j],gg2=p[j+1],b2=p[j+2],
+off=255-(Math.max(r,Math.max(gg2,b2))+Math.min(r,Math.min(gg2,b2)));
+p[j]=r+off;p[j+1]=gg2+off;p[j+2]=b2+off;}
 /* 가장자리 페더 — 액자 테두리 티를 없앤다 */
 var fx=Math.max(5,w*0.055),fy=Math.max(5,h*0.055);
 for(var y=0;y<h;y++)for(var x=0;x<w;x++){
@@ -207,16 +234,29 @@ for(var i=0;i<Q.BOX.length;i++){var b=Q.BOX[i],txt=null,fs=18,wt='500';
 var EN=Q.lang==='en';
 if(b.role==='q'){txt=(EN&&Q.cur.qe)?Q.cur.qe:Q.cur.q;wt='700';
 fs=txt.length>210?18:txt.length>150?20:txt.length>90?22:25;}
-else if(b.role==='o'){var OO=(EN&&Q.cur.oe)?Q.cur.oe:Q.cur.o;txt=OO[b.i];fs=b.img?17:19;}
+else if(b.role==='o'){
+/* 그림이 곧 선지인 문항은 라벨을 그리지 않는다(데이터의 labels:false). */
+if(b.img&&Q.cur.labels===false)continue;
+var OO=(EN&&Q.cur.oe)?Q.cur.oe:Q.cur.o;txt=OO[b.i];fs=b.img?17:19;}
 else if(b.role==='illust'){if(b.img)continue;txt='삽화';fs=15;}
 if(txt===null||txt==='')continue;
 ctx.font=wt+' '+fs+'px '+FONT;
 var dim=(b.role==='illust')?0.30:(b.role==='o'&&Q.pick>=0&&Q.pick!==b.i?0.45:0.94);
-ctx.fillStyle='rgba(255,255,255,'+(dim*uiA).toFixed(3)+')';
+var al=dim*uiA;
 var ln=wrap(ctx,txt,b.w-52),lh=fs*1.45;
 /* 이미지가 있는 선지는 글씨를 박스 아래쪽으로 내려 그림과 겹치지 않게 한다 */
 var cy=b.img?(b.y+b.h/2-IPAD-lh*(ln.length-0.5)+lh/2):b.y;
 var y0=cy-(ln.length-1)*lh/2;
+/* 은은한 후광 — 넓게 한 겹, 좁게 한 겹 깔고 그 위에 또렷한 글자를 얹는다 */
+ctx.globalCompositeOperation='lighter';
+ctx.shadowColor='rgba(255,255,255,'+(al*0.55).toFixed(3)+')';
+ctx.fillStyle='rgba(255,255,255,'+(al*0.30).toFixed(3)+')';
+ctx.shadowBlur=fs*1.15;
+for(var k=0;k<ln.length;k++)ctx.fillText(ln[k],b.x,y0+k*lh);
+ctx.shadowBlur=fs*0.42;
+for(var k=0;k<ln.length;k++)ctx.fillText(ln[k],b.x,y0+k*lh);
+ctx.shadowBlur=0;ctx.globalCompositeOperation='source-over';
+ctx.fillStyle='rgba(255,255,255,'+al.toFixed(3)+')';
 for(var k=0;k<ln.length;k++)ctx.fillText(ln[k],b.x,y0+k*lh);}
 ctx.restore();}
  
@@ -244,7 +284,7 @@ for(var j=0;j<NH;j++)for(var i=0;i<NW;i++){
 var n=vn(i*0.0475,j*0.0475,t)*0.58+vn(i*0.0992+9,j*0.0992+4,t*1.6+17)*0.42;
 nf[j*NW+i]=n*n*(3-2*n);}
 for(var bi=0;bi<Q.BOX.length;bi++)if(Q.BOX[bi].img)imgField(Q.BOX[bi].img);
-ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+ctx.fillStyle='#000';ctx.fillRect(-OX,-OY,EW,EH);
 var nAmp=GAPF*0.17*bg,base=GAPF*0.028*bg;
 var dAmp=GAPF*(0.13+grow*BEAD)*dOn,halo=0.18*(1-sA),sig2=2*Math.pow(4.6+grow*2.2,2);
 if(bg>0.004||dOn>0.004){
@@ -279,7 +319,7 @@ if(sA>0.01||g>0.01){
 gg=g;sAA=sA;lwA=(1-thin)*GAPF*LWSTART+thin*LWF;bwA=Math.max(lwA,GAPF*0.7*(1-thin)+thin*LWF*1.2);
 obj(strokeFrame,[faceLeaves,faceLogo]);
 if(oe>0.004){
-LIT.g.clearRect(0,0,W,H);LIT.g.globalCompositeOperation='lighter';LIT.g.fillStyle='#fff';
+LIT.g.clearRect(-OX,-OY,EW,EH);LIT.g.globalCompositeOperation='lighter';LIT.g.fillStyle='#fff';
 for(var s2=0;s2<16;s2++){var fs2=1+s2*0.115;
 LIT.g.save();dtf(LIT.g);LIT.g.translate(480,LSRC);LIT.g.scale(fs2,fs2);LIT.g.translate(-480,-LSRC);
 LIT.g.globalAlpha=0.42/(fs2*fs2);if(apPath(LIT.g,sc))LIT.g.fill();LIT.g.restore();}
@@ -287,10 +327,10 @@ LIT.g.globalAlpha=1;LIT.g.globalCompositeOperation='source-over';
 bl(ctx,LIT.c,4,0.45*oe);bl(ctx,LIT.c,18,0.55*oe);bl(ctx,LIT.c,52,0.7*oe);
 ctx.save();dtf(ctx);ctx.globalCompositeOperation='lighter';ctx.globalAlpha=Math.min(1,oe);
 if(apPath(ctx,sc))ctx.fill();ctx.restore();}
-if(FACE>0.002){LYR.g.clearRect(0,0,W,H);lit(LYR.g,faceLeaves,FACE);
+if(FACE>0.002){LYR.g.clearRect(-OX,-OY,EW,EH);lit(LYR.g,faceLeaves,FACE);
 occlude(LYR.g,faceOrn);occlude(LYR.g,faceLogo);paste();}
 obj(strokeLeaf,[faceOrn,faceLogo]);
-if(FACE>0.002){LYR.g.clearRect(0,0,W,H);lit(LYR.g,faceOrn,FACE);occlude(LYR.g,faceLogo);paste();}
+if(FACE>0.002){LYR.g.clearRect(-OX,-OY,EW,EH);lit(LYR.g,faceOrn,FACE);occlude(LYR.g,faceLogo);paste();}
 obj(strokeOrn,[faceLogo]);
 lit(ctx,faceLogo,FACE);
 obj(strokeLogo,[]);}
@@ -298,11 +338,14 @@ drawImages();
 drawText();
 if(FL>0.001){ctx.save();ctx.globalCompositeOperation='source-over';
 ctx.fillStyle='rgba(255,255,255,'+Math.min(1,Math.pow(FL,0.75)).toFixed(3)+')';
-ctx.fillRect(0,0,W,H);ctx.restore();}
+ctx.fillRect(-OX,-OY,EW,EH);ctx.restore();}
 }
 
 /* ═════════════════ 외부 인터페이스 ═════════════════ */
 export var canvas=c;
-export var VW=W,VH=H;
+/* 화면 좌표 → 설계 좌표. 여백을 누르면 설계 범위 밖 값이 나온다(박스에 안 걸림). */
+export function toDesign(clientX,clientY){var r=c.getBoundingClientRect();
+return{x:(clientX-r.left)/(r.width||1)*EW-OX,y:(clientY-r.top)/(r.height||1)*EH-OY};}
+export function relayout(){layout();}
 export function resetAnim(){life=1;phase=0;}
-export function start(){requestAnimationFrame(frame);}
+export function start(){layout();requestAnimationFrame(frame);}

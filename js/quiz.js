@@ -74,9 +74,9 @@ export function snapshot(){return{i:Q.target,total:MAXQ,dead:Q.dead,lang:Q.lang,
 cur:Q.cur,nxt:Q.target+1<MAXQ?QUIZ[Q.target+1]:null,undoable:lastAct!==null};}
 
 /* ═════════════════ 메인 창 입력 ═════════════════ */
-export function bindMainInput(c,W,H){
-c.addEventListener('click',function(e){var r=c.getBoundingClientRect();
-var mx=(e.clientX-r.left)/r.width*W,my=(e.clientY-r.top)/r.height*H;
+export function bindMainInput(c,toDesign){
+c.addEventListener('click',function(e){var pt=toDesign(e.clientX,e.clientY);
+var mx=pt.x,my=pt.y;
 for(var i=0;i<Q.BOX.length;i++){var b=Q.BOX[i];
 if(b.role==='o'&&Math.abs(mx-b.x)<b.w/2&&Math.abs(my-b.y)<b.h/2){answer(b.i);return;}}});
 window.addEventListener('keydown',function(e){
