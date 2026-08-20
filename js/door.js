@@ -264,7 +264,7 @@ function paintText(ctx){
 ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
 for(var i=0;i<Q.BOX.length;i++){var b=Q.BOX[i],txt=null,fs=18,wt='500';
 var EN=Q.lang==='en';
-if(b.role==='q'){txt=(EN&&Q.cur.qe)?Q.cur.qe:Q.cur.q;wt='700';
+if(b.role==='q'){txt=Q.no+'. '+((EN&&Q.cur.qe)?Q.cur.qe:Q.cur.q);wt='700';
 fs=txt.length>210?18:txt.length>150?20:txt.length>90?22:25;}
 else if(b.role==='o'){
 /* 그림이 곧 선지인 문항은 라벨을 그리지 않는다(데이터의 labels:false). */

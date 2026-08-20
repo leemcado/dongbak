@@ -30,7 +30,7 @@ return B;}
 
 /* ═════════════════ 진행 상태 ═════════════════
    door.js 가 매 프레임 읽는 값. 필드 이름은 원본의 전역 변수명 그대로다. */
-export var Q={target:0,dead:0,cur:null,BOX:[],uiT:1,pick:-1,lang:'ko',gave:0};
+export var Q={target:0,dead:0,cur:null,BOX:[],uiT:1,pick:-1,lang:'ko',gave:0,no:1};
 
 /* 렌더러·동기화가 걸어 두는 훅. 순환 임포트를 피하려고 콜백으로 둔다. */
 export var hooks={onRestart:null,onState:null};
@@ -57,7 +57,9 @@ if(b.role==='illust')b.img=im[0];
 else if(b.role==='o'&&q.t==='선지사진'&&im[b.i])b.img=im[b.i];
 if(b.img)b.imode=md;}
 return B;}
-export function load(i){Q.cur=i<MAXQ?QUIZ[i]:null;Q.BOX=Q.cur?attachImg(Q.cur,LAY(Q.cur)):[];Q.pick=-1;tell();}
+export function load(i){Q.cur=i<MAXQ?QUIZ[i]:null;Q.BOX=Q.cur?attachImg(Q.cur,LAY(Q.cur)):[];
+/* 번호는 문항과 함께 바뀌어야 한다. target 은 next() 에서 먼저 오르므로 여기서 따로 잡는다. */
+Q.no=i+1;Q.pick=-1;tell();}
 export function next(){if(Q.target<MAXQ){lastAct='ok';Q.target++;Q.uiT=0;
 setTimeout(function(){load(Q.target);Q.uiT=1;},380);}}
 export function fail(){lastAct='ng';Q.dead=1;Q.uiT=0;tell();}
