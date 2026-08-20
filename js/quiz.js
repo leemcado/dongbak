@@ -44,11 +44,12 @@ var BANK=[],PLAN=[],QUIZ=[],lastAct=null;
 var TSEC=120,TBONUS=10,tEnd=0,tick=0;
 function timing(){return tick!==0;}
 function stopTimer(){if(tick){clearInterval(tick);tick=0;}Q.tleft=0;}
-function startTimer(){stopTimer();tEnd=Date.now()+TSEC*1000;Q.tleft=TSEC;
+function armTimer(sec){stopTimer();tEnd=Date.now()+sec*1000;Q.tleft=Math.ceil(sec);
 tick=setInterval(function(){
 var s=(tEnd-Date.now())/1000;
 if(s<=0){stopTimer();if(!Q.dead)fail();return;}
 var v=Math.ceil(s);if(v!==Q.tleft){Q.tleft=v;tell();}},200);}
+function startTimer(){armTimer(TSEC);}
 
 export async function loadBank(url){
 var r=await fetch(url||'data/questions.json',{cache:'no-store'});
@@ -101,9 +102,14 @@ setTimeout(function(){load(Q.target);},FADEMS);}
    되돌리면 연출이 거꾸로 감기며 관리자 화면도 종료화면에서 문항으로 튄다. */
 function done(){return Q.target>=MAXQ&&!Q.dead;}
 
-/* 마지막 문항에서 Backspace 는 되돌리기가 아니라 시간 10초 추가다. */
-export function back(){if(timing()){tEnd+=TBONUS*1000;
-Q.tleft=Math.ceil((tEnd-Date.now())/1000);tell();return;}undo();}
+/* 마지막 문항에서 Backspace 는 언제나 '시간 10초 추가'다. 되돌리기가 아니다.
+   시간이 다 됐거나 오답으로 끝난 뒤에 눌러도 10초만 얹어 되살린다.
+   undo() 로 보내면 fail 을 되돌리며 load 가 다시 불려 2분이 새로 돌아버린다. */
+export function back(){
+if(Q.cur&&Q.target===MAXQ-1){
+if(timing()){tEnd+=TBONUS*1000;Q.tleft=Math.ceil((tEnd-Date.now())/1000);tell();return;}
+Q.dead=0;Q.uiT=1;lastAct=null;armTimer(TBONUS);tell();return;}
+undo();}
 
 /* 직전 판정 하나만 되돌린다. 관리자 창에서만 호출한다. */
 export function undo(){if(done())return;
