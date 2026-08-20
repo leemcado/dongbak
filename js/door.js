@@ -261,7 +261,7 @@ bl(ctx,LYR.c,TG1,TGA1);
 bl(ctx,LYR.c,TG2,TGA2);
 paintText(ctx);}
 function paintText(ctx){
-ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
+ctx.save();ctx.textBaseline='middle';
 for(var i=0;i<Q.BOX.length;i++){var b=Q.BOX[i],txt=null,fs=18,wt='500';
 var EN=Q.lang==='en';
 if(b.role==='q'){txt=Q.no+'. '+((EN&&Q.cur.qe)?Q.cur.qe:Q.cur.q);wt='700';
@@ -280,7 +280,11 @@ var ln=wrap(ctx,txt,b.w-52),lh=fs*1.45;
 var cy=b.img?(b.y+b.h/2-IPAD-lh*(ln.length-0.5)+lh/2):b.y;
 var y0=cy-(ln.length-1)*lh/2;
 ctx.fillStyle='rgba(255,255,255,'+al.toFixed(3)+')';
-for(var k=0;k<ln.length;k++)ctx.fillText(ln[k],b.x,y0+k*lh);}
+/* 세로로 늘어선 선지는 왼끝을 맞춰야 목록으로 읽힌다 */
+var lf=b.align==='left';
+ctx.textAlign=lf?'left':'center';
+var tx=lf?b.x-b.w/2+26:b.x;
+for(var k=0;k<ln.length;k++)ctx.fillText(ln[k],tx,y0+k*lh);}
 ctx.restore();}
  
 
