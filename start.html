@@ -29,13 +29,16 @@
 document.getElementById('go').addEventListener('click',function(){
   /* 클릭 한 번에 창을 두 개 열면 뒤엣것이 팝업 차단에 걸린다.
      관리자만 새 창으로 띄우고, 이 창 자체를 메인 화면으로 바꾼다. */
-  var w=window.open('admin.html','kucc-admin','width=1200,height=950');
+  /* Pages 가 HTML 에 max-age=600 을 붙여 예전 파일이 10분간 남는다.
+     시작 페이지에서 여는 창만이라도 매번 새로 받게 한다. */
+  var v='?v='+Date.now();
+  var w=window.open('admin.html'+v,'kucc-admin','width=1200,height=950');
   if(!w){
     document.getElementById('warn').textContent=
       '팝업이 차단되었습니다. 주소창 오른쪽에서 허용한 뒤 다시 눌러 주세요.';
     return;
   }
-  setTimeout(function(){location.replace('index.html');},400);
+  setTimeout(function(){location.replace('index.html'+v);},400);
 });
 </script>
 </body>
