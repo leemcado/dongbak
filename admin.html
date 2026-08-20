@@ -22,11 +22,8 @@
   #ans{font-size:30px;font-weight:700;margin:14px 0}
   h2{font-size:17px;letter-spacing:.14em;margin:30px 0 6px;font-weight:700}
   #x{font-size:21px}
-  #nxt{font-size:21px}
-  hr{border:0;border-top:3px solid #000;margin:26px 0}
   #keys{position:fixed;right:0;bottom:0;left:0;background:#000;color:#fff;
     font-size:19px;padding:9px 36px;letter-spacing:.02em}
-  #link{font-size:16px;color:#666;margin-top:8px}
   #warn:not(:empty){display:block;background:#000;color:#fff;font-size:19px;
     font-weight:700;padding:8px 14px;margin:0 0 14px}
 </style>
@@ -40,9 +37,6 @@
 <ol id="o"></ol>
 <div id="ans"></div>
 <h2>해설</h2><div id="x"></div>
-<hr>
-<h2>다음 문제</h2><div id="nxt"></div>
-<div id="link"></div>
 <div id="keys">스페이스 정답 · Esc 오답 · Backspace 직전 판정 취소(7번은 +10초) · P 중도 포기 · R 처음부터 · E 한/영 전환</div>
 <script type="module">
 import {open} from './js/sync.js';
@@ -76,8 +70,7 @@ sp.textContent=oo[i];li.appendChild(sp);
 if(i===c.a)li.className='ok';ol.appendChild(li);}
 $('ans').textContent=c?('정답 — '+(oo.length?(c.a+1)+'번  '+oo[c.a]:[].concat(A(c)).join('  /  '))):'';
 $('x').textContent=c?(c.x||''):'';
-$('nxt').textContent=s.nxt?(s.nxt.c+' · '+s.nxt.l+' · '+s.nxt.t+'  —  '+Q(s.nxt)):'— 마지막 문제입니다';
-$('link').textContent=s.undoable?'':'되돌릴 판정이 없습니다.';}
+}
 
 /* 채점 키는 관리자 창에서만 받는다. 메인 창의 주관식 입력과 충돌하지 않도록. */
 /* e.key 로 글자 키를 보면 한글 입력 상태에서 'r' 이 'ㄱ' 으로 들어와 먹히지 않는다.
