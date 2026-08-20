@@ -252,6 +252,7 @@ for(var i=0;i<Q.BOX.length;i++){var b=Q.BOX[i];
 if(px<b.x-b.w/2-2||px>b.x+b.w/2+2||py<b.y-b.h/2-2||py>b.y+b.h/2+2)continue;
 var d=-sdBox(px,py,b);if(d>mx)mx=d;}
 return mx/BOXDEPTH*BOXCUT*uiA;}
+function fmtT(s){s=s>0?s|0:0;return Math.floor(s/60)+':'+('0'+(s%60)).slice(-2);}
 function wrap(g,txt,mw){var w=txt.split(' '),ln=[],cu='';
 for(var i=0;i<w.length;i++){var tr=cu?cu+' '+w[i]:w[i];
 if(g.measureText(tr).width>mw&&cu){ln.push(cu);cu=w[i];}else cu=tr;}
@@ -277,6 +278,7 @@ else if(b.role==='o'){
 /* 그림이 곧 선지인 문항은 라벨을 그리지 않는다(데이터의 labels:false). */
 if(b.img&&Q.cur.labels===false)continue;
 var OO=(EN&&Q.cur.oe)?Q.cur.oe:Q.cur.o;txt=OO[b.i];fs=b.img?17:19;}
+else if(b.role==='timer'){txt=fmtT(Q.tleft);fs=36;wt='700';}
 else if(b.role==='illust'){if(b.img)continue;txt='삽화';fs=15;}
 if(txt===null||txt==='')continue;
 ctx.font=wt+' '+fs+'px '+FONT;

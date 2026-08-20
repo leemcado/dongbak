@@ -32,7 +32,7 @@ quiz.hooks.onRestart=door.resetAnim;
 var ch=open('main',{state:quiz.snapshot,on:function(cmd){
 if(cmd==='ok'){if(!quiz.Q.dead)quiz.next();}
 else if(cmd==='ng'){if(!quiz.Q.dead)quiz.fail();}
-else if(cmd==='undo')quiz.undo();
+else if(cmd==='undo')quiz.back();
 else if(cmd==='lang')quiz.toggleLang();
 else if(cmd==='giveup')quiz.giveUp();
 else if(cmd==='restart')quiz.restart();}});

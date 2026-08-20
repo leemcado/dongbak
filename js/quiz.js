@@ -10,10 +10,10 @@ export var MAXQ=7;
    선지는 문을 비껴가도록 좌우 열로. COLL/COLR 안쪽 가장자리가
    문설주(x≈319 / 641) 바로 바깥에서 멈춘다.                      */
 var COLL=166,COLR=794;
-export function LAY(q){var B=[],t=q.t;
+export function LAY(q,last){var B=[],t=q.t;
 function box(x,y,w,h,r,role,i){B.push({x:x,y:y,w:w,h:h,r:r,role:role,i:i});}
 if(t==='주관식'){box(480,168,820,216,34,'q');}
-else if(t==='주관식삽화'){box(480,124,860,196,30,'q');box(480,382,430,250,30,'illust');}
+else if(t==='주관식삽화'){box(480,158,860,160,28,'q');box(480,392,400,230,30,'illust');}
 else if(t==='4지선다삽화'){
 /* 삽화는 문제 띠 왼쪽 귀퉁이에 작게. 선지는 일반 4지선다와 같은 자리다. */
 box(110,74,116,116,22,'illust');box(556,74,716,116,24,'q');
@@ -26,16 +26,29 @@ for(var i=0;i<4;i++)box(i%2?COLR+8:COLL-8,240+((i/2)|0)*200,300,184,26,'o',i);}
 else{box(480,82,660,88,26,'q');
 box(COLL,252,300,86,26,'o',0);box(COLR,252,300,86,26,'o',1);
 box(COLL,358,300,86,26,'o',2);box(COLR,358,300,86,26,'o',3);}
+if(last)box(480,42,148,52,16,'timer');
 return B;}
 
 /* ═════════════════ 진행 상태 ═════════════════
    door.js 가 매 프레임 읽는 값. 필드 이름은 원본의 전역 변수명 그대로다. */
-export var Q={target:0,dead:0,cur:null,BOX:[],uiT:1,pick:-1,lang:'ko',gave:0,no:1};
+export var Q={target:0,dead:0,cur:null,BOX:[],uiT:1,pick:-1,lang:'ko',gave:0,no:1,tleft:0};
 
 /* 렌더러·동기화가 걸어 두는 훅. 순환 임포트를 피하려고 콜백으로 둔다. */
 export var hooks={onRestart:null,onState:null};
 
 var BANK=[],PLAN=[],QUIZ=[],lastAct=null;
+
+/* ── 마지막 문항 제한시간 ──
+   남은 시간은 시각 차이로 구한다. 탭이 뒤로 밀려 타이머가 스로틀돼도
+   경과가 어긋나지 않는다. */
+var TSEC=120,TBONUS=10,tEnd=0,tick=0;
+function timing(){return tick!==0;}
+function stopTimer(){if(tick){clearInterval(tick);tick=0;}Q.tleft=0;}
+function startTimer(){stopTimer();tEnd=Date.now()+TSEC*1000;Q.tleft=TSEC;
+tick=setInterval(function(){
+var s=(tEnd-Date.now())/1000;
+if(s<=0){stopTimer();if(!Q.dead)fail();return;}
+var v=Math.ceil(s);if(v!==Q.tleft){Q.tleft=v;tell();}},200);}
 
 export async function loadBank(url){
 var r=await fetch(url||'data/questions.json',{cache:'no-store'});
@@ -57,15 +70,17 @@ if(b.role==='illust')b.img=im[0];
 else if(b.role==='o'&&q.t==='선지사진'&&im[b.i])b.img=im[b.i];
 if(b.img)b.imode=md;}
 return B;}
-export function load(i){Q.cur=i<MAXQ?QUIZ[i]:null;Q.BOX=Q.cur?attachImg(Q.cur,LAY(Q.cur)):[];
+export function load(i){var last=i===MAXQ-1;
+Q.cur=i<MAXQ?QUIZ[i]:null;Q.BOX=Q.cur?attachImg(Q.cur,LAY(Q.cur,last)):[];
+if(last)startTimer();else stopTimer();
 /* 번호는 문항과 함께 바뀌어야 한다. target 은 next() 에서 먼저 오르므로 여기서 따로 잡는다. */
 Q.no=i+1;Q.pick=-1;tell();}
 export function next(){if(Q.target<MAXQ){lastAct='ok';Q.target++;Q.uiT=0;
 setTimeout(function(){load(Q.target);Q.uiT=1;},380);}}
-export function fail(){lastAct='ng';Q.dead=1;Q.uiT=0;tell();}
+export function fail(){lastAct='ng';Q.dead=1;Q.uiT=0;stopTimer();tell();}
 export function answer(k){if(!Q.cur||Q.dead)return;if(Q.cur.t.indexOf('주관식')===0)return;
 Q.pick=k;if(k===Q.cur.a)next();else fail();}
-export function restart(){Q.target=0;Q.dead=0;Q.uiT=1;Q.gave=0;lastAct=null;
+export function restart(){stopTimer();Q.target=0;Q.dead=0;Q.uiT=1;Q.gave=0;lastAct=null;
 if(hooks.onRestart)hooks.onRestart();build();}
 
 /* 한국어 ↔ 영어. 번역은 문항 데이터의 qe/oe/ae 에 미리 넣어 두었다. */
@@ -76,7 +91,7 @@ export function toggleLang(){Q.lang=Q.lang==='en'?'ko':'en';tell();}
    그대로 phase 가 흐르기 시작한다. 별도 연출을 새로 만들지 않는다. */
 var FADEMS=680;   /* 인터페이스가 다 옅어질 때까지. uiA 는 프레임당 0.16 으로 준다 */
 export function giveUp(){if(Q.dead||Q.target>=MAXQ)return;
-lastAct=null;Q.gave=1;Q.target=MAXQ;Q.uiT=0;
+stopTimer();lastAct=null;Q.gave=1;Q.target=MAXQ;Q.uiT=0;
 /* 곧바로 비우면 문제·선지·삽화가 한 프레임에 사라진다. 정답 처리 때처럼
    uiA 가 옅어지는 것을 기다렸다가 비운다. 그동안 문은 이미 다가오기 시작한다.
    비울 때 Q.target 을 다시 읽으므로 사이에 R 이 눌려도 어긋나지 않는다. */
@@ -86,6 +101,10 @@ setTimeout(function(){load(Q.target);},FADEMS);}
    되돌리면 연출이 거꾸로 감기며 관리자 화면도 종료화면에서 문항으로 튄다. */
 function done(){return Q.target>=MAXQ&&!Q.dead;}
 
+/* 마지막 문항에서 Backspace 는 되돌리기가 아니라 시간 10초 추가다. */
+export function back(){if(timing()){tEnd+=TBONUS*1000;
+Q.tleft=Math.ceil((tEnd-Date.now())/1000);tell();return;}undo();}
+
 /* 직전 판정 하나만 되돌린다. 관리자 창에서만 호출한다. */
 export function undo(){if(done())return;
 if(lastAct==='ng'){Q.dead=0;Q.uiT=1;lastAct=null;load(Q.target);return;}
@@ -93,7 +112,8 @@ if(lastAct==='ok'&&Q.target>0){Q.target--;Q.uiT=1;lastAct=null;load(Q.target);}}
 
 /* 관리자 창에 보낼 상태. 메인이 소유하고 방송한다. */
 export function snapshot(){return{i:Q.target,total:MAXQ,dead:Q.dead,lang:Q.lang,gave:Q.gave,
-cur:Q.cur,nxt:Q.target+1<MAXQ?QUIZ[Q.target+1]:null,undoable:lastAct!==null&&!done()};}
+cur:Q.cur,nxt:Q.target+1<MAXQ?QUIZ[Q.target+1]:null,undoable:lastAct!==null&&!done(),
+tleft:Q.tleft,timing:timing()};}
 
 /* ═════════════════ 메인 창 입력 ═════════════════ */
 export function bindMainInput(c,toDesign){
@@ -106,7 +126,7 @@ window.addEventListener('keydown',function(e){var c=e.code;
 if(e.key==='F5'||c==='KeyR'){e.preventDefault();restart();return;}
 if(c==='Space'||e.key===' '){e.preventDefault();if(!Q.dead)next();return;}
 if(c==='Escape'||e.key==='Escape'){e.preventDefault();if(!Q.dead)fail();return;}
-if(c==='Backspace'){e.preventDefault();undo();return;}
+if(c==='Backspace'){e.preventDefault();back();return;}
 if(c==='KeyE'){e.preventDefault();toggleLang();return;}
 if(c==='KeyP'){e.preventDefault();giveUp();return;}
 if(!Q.cur||Q.dead)return;
