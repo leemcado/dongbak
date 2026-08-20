@@ -165,10 +165,17 @@ function strokeLogo(g,w,a){g.save();dtf(g);logoTF(g,LGX,LGY,LGK);g.lineJoin='rou
 g.lineWidth=w/LGK/DS;g.strokeStyle='rgba(255,255,255,'+a.toFixed(3)+')';g.stroke(P2ALL);g.restore();}
 var gg=0,sAA=0,lwA=0,bwA=0;
 /* 광원 단계에서 가린 뒤 블러 → 보이는 선의 빛만 면 위로 번진다 */
+/* 문턱 아래는 바닥이다. 빛이 그 아래로 새면 화면 밑단에 흰 띠가 깔린다.
+   광역 후광이 특히 넓게 번지므로 후광을 얹을 때만 문턱 높이에서 자른다. */
+var FLOORY=TY(449)+12;
+function clipFloor(g){g.beginPath();g.save();dtf(g);
+g.rect(-2e4,-2e4,4e4,2e4+FLOORY);g.restore();g.clip();}
 function obj(strokeFn,cuts){
 if(gg>0.01){GLW.g.clearRect(-OX,-OY,EW,EH);strokeFn(GLW.g,bwA,1);
 for(var i=0;i<cuts.length;i++)occlude(GLW.g,cuts[i]);
-bl(ctx,GLW.c,(2.5+gg*5)*BLURK,0.30*gg);bl(ctx,GLW.c,(9+gg*16)*BLURK,0.40*gg);bl(ctx,GLW.c,(26+gg*44)*BLURK,0.28*gg);}
+ctx.save();clipFloor(ctx);
+bl(ctx,GLW.c,(2.5+gg*5)*BLURK,0.30*gg);bl(ctx,GLW.c,(9+gg*16)*BLURK,0.40*gg);bl(ctx,GLW.c,(26+gg*44)*BLURK,0.28*gg);
+ctx.restore();}
 if(sAA>0.01){LYR.g.clearRect(-OX,-OY,EW,EH);
 LYR.g.save();LYR.g.globalCompositeOperation='lighter';strokeFn(LYR.g,lwA,sAA);LYR.g.restore();
 for(var i=0;i<cuts.length;i++)occlude(LYR.g,cuts[i]);paste();}}
