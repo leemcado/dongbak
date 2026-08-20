@@ -278,7 +278,7 @@ else if(b.role==='o'){
 /* 그림이 곧 선지인 문항은 라벨을 그리지 않는다(데이터의 labels:false). */
 if(b.img&&Q.cur.labels===false)continue;
 var OO=(EN&&Q.cur.oe)?Q.cur.oe:Q.cur.o;txt=OO[b.i];fs=b.img?17:19;}
-else if(b.role==='timer'){txt=fmtT(Q.tleft);fs=36;wt='700';}
+else if(b.role==='timer'){txt=fmtT(Q.tleft);fs=26;wt='700';}
 else if(b.role==='illust'){if(b.img)continue;txt='삽화';fs=15;}
 if(txt===null||txt==='')continue;
 ctx.font=wt+' '+fs+'px '+FONT;
